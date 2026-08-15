@@ -1,5 +1,6 @@
-import { app, shell, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, dialog, ipcMain, nativeImage } from 'electron'
 import { spawn } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 
@@ -8,6 +9,15 @@ import { AgentSession, SessionManager } from './session/sessionManager'
 import type { CliInfo, CreateSessionOptions } from '../shared/types'
 
 const sessionManager = new SessionManager()
+
+function resolveAppIcon(): Electron.NativeImage | undefined {
+  const iconPath = join(__dirname, '../../build/icon.png')
+  if (!existsSync(iconPath)) {
+    return undefined
+  }
+  const image = nativeImage.createFromPath(iconPath)
+  return image.isEmpty() ? undefined : image
+}
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -18,7 +28,8 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#0f1115',
-    title: 'Agent Workspace',
+    title: 'PixelForge',
+    icon: resolveAppIcon(),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -160,7 +171,14 @@ function wireSession(session: AgentSession): void {
 }
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.agent-workspace.app')
+  electronApp.setAppUserModelId('com.pixelforge.app')
+
+  if (process.platform === 'darwin' && app.dock) {
+    const icon = resolveAppIcon()
+    if (icon) {
+      app.dock.setIcon(icon)
+    }
+  }
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

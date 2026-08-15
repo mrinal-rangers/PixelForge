@@ -1,9 +1,9 @@
 {
-  "name": "agent-workspace",
+  "name": "pixelforge",
   "version": "0.1.0",
   "description": "Multi-agent desktop workspace - run and manage AI coding agents as a virtual team",
   "main": "./out/main/index.js",
-  "author": "agent-workspace",
+  "author": "Mrinal Deb",
   "license": "MIT",
   "scripts": {
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",

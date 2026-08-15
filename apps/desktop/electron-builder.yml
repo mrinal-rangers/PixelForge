@@ -1,5 +1,5 @@
-appId: com.agent-workspace.app
-productName: Agent Workspace
+appId: com.pixelforge.app
+productName: PixelForge
 directories:
   buildResources: build
   output: dist
@@ -17,10 +17,13 @@ asarUnpack:
   - node_modules/node-pty/**
 win:
   target: nsis
+  icon: build/icon.png
 mac:
   category: public.app-category.developer-tools
+  icon: build/icon.icns
   target: dmg
 linux:
   target: AppImage
+  icon: build/icon.png
   category: Development
 npmRebuild: true
