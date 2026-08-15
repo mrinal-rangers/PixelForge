@@ -1,0 +1,26 @@
+appId: com.agent-workspace.app
+productName: Agent Workspace
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**/*
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!scripts/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+asarUnpack:
+  - resources/**
+  - node_modules/node-pty/**
+win:
+  target: nsis
+mac:
+  category: public.app-category.developer-tools
+  target: dmg
+linux:
+  target: AppImage
+  category: Development
+npmRebuild: true
