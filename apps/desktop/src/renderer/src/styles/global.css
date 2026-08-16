@@ -681,6 +681,23 @@ button {
   background: transparent;
 }
 
+.btn-danger {
+  background: var(--red);
+  border-color: var(--red-dark);
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--red-dark);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+.btn-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .wizard-actions {
   display: flex;
   align-items: center;
@@ -1977,4 +1994,454 @@ button {
 .roster-card.manager {
   border-color: var(--yellow);
   box-shadow: 0 3px 0 var(--shadow), 0 0 10px rgba(255, 204, 51, 0.18);
+}
+
+/* ---------- Command center: identity header + tabs ---------- */
+
+.cc-header {
+  flex-shrink: 0;
+  border-bottom: 3px solid var(--border);
+  background: var(--bg-raised);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cc-header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cc-header-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cc-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.cc-header-row .cc-name {
+  text-align: left;
+}
+
+.cc-role-badge {
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  padding: 3px 7px;
+  flex-shrink: 0;
+}
+
+.cc-role-badge.manager {
+  color: var(--yellow);
+  border-color: var(--yellow);
+}
+
+.cc-description {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.cc-header-row .cc-engine {
+  text-align: left;
+  font-size: 9px;
+}
+
+.cc-engine-sep {
+  margin: 0 5px;
+  opacity: 0.6;
+}
+
+.cc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cc-header-actions .btn {
+  padding: 8px 10px;
+}
+
+.cc-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+  border: 2px dashed var(--border);
+  padding: 12px;
+}
+
+.cc-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+  border: 2px solid var(--red);
+  padding: 12px;
+}
+
+.cc-confirm-text {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.cc-message-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 3px solid var(--border);
+  background: var(--bg-raised);
+  flex-shrink: 0;
+}
+
+.cc-message-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+}
+
+.cc-message-tool {
+  flex-shrink: 0;
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  padding: 9px 10px;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.cc-message-tool:disabled {
+  opacity: 0.45;
+}
+
+/* Git */
+
+.git-box {
+  display: flex;
+  flex-direction: column;
+  background: var(--terminal-bg);
+  border: 2px solid var(--border);
+  padding: 10px 12px;
+}
+
+.git-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.git-row:last-child {
+  border-bottom: none;
+}
+
+.git-label {
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 7px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.git-value {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--green);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Traces */
+
+.trace-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.trace-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trace-label {
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 7px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+.trace-grid {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 4px 10px;
+  font-size: 11px;
+}
+
+.trace-grid span {
+  color: var(--text-dim);
+}
+
+.trace-grid code {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.trace-pre {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--terminal-bg);
+  border: 2px solid var(--border);
+  padding: 8px 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.trace-log {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--terminal-bg);
+  border: 2px solid var(--border);
+  padding: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* Monitor */
+
+.monitor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.monitor-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: var(--bg-raised);
+  border: 2px solid var(--border);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: border-color 0.1s;
+}
+
+.monitor-item:hover {
+  border-color: var(--accent);
+}
+
+.monitor-name {
+  font-size: 12px;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.monitor-state {
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 7px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+/* Tasks */
+
+.task-subtabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.task-subtab {
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  padding: 7px 9px;
+  cursor: pointer;
+}
+
+.task-subtab:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.task-subtab.active {
+  color: var(--yellow);
+  border-color: var(--yellow);
+}
+
+.task-subtab-count {
+  margin-left: 5px;
+  opacity: 0.7;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-raised);
+  border: 2px solid var(--border);
+  padding: 8px 10px;
+}
+
+.task-item.task-doing {
+  border-color: var(--accent);
+}
+
+.task-item.task-blocked {
+  border-color: var(--red);
+}
+
+.task-item.task-done {
+  opacity: 0.6;
+}
+
+.task-item.task-done .task-text {
+  text-decoration: line-through;
+}
+
+.task-text {
+  font-size: 12px;
+  color: var(--text);
+  flex: 1;
+  word-break: break-word;
+}
+
+/* Ask me */
+
+.askme-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-raised);
+  border: 2px solid var(--border);
+  padding: 8px 10px;
+}
+
+/* Commands */
+
+.commands-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.command-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-raised);
+  border: 2px solid var(--border);
+  padding: 10px;
+}
+
+.command-card-name {
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 9px;
+  color: var(--text);
+}
+
+.command-card-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+/* Memory */
+
+.memory-view-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.memory-view-btn {
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  padding: 6px 9px;
+  cursor: pointer;
+}
+
+.memory-view-btn.active {
+  color: var(--yellow);
+  border-color: var(--yellow);
+}
+
+.memory-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memory-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--bg-raised);
+  border: 2px solid var(--border);
+  padding: 8px 10px;
+}
+
+.memory-mode-chip {
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 6px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 2px 4px;
+  flex-shrink: 0;
+}
+
+.memory-markdown {
+  flex: 1;
+  min-width: 0;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
 }

@@ -35,6 +35,13 @@ export interface MemoryNote {
   ts: number
 }
 
+export interface ConversationItem {
+  id: number
+  from: 'me' | 'agent'
+  text: string
+  ts: number
+}
+
 export interface HireProfile {
   name: string
   role: string
@@ -57,15 +64,22 @@ interface OfficeState {
   activity: Record<string, string[]>
   tasks: Record<string, AgentTask[]>
   memory: MemoryNote[]
+  conversations: Record<string, ConversationItem[]>
   upsertAgent: (session: SessionInfo) => void
   hireAgent: (profile: HireProfile) => string
   setAgentAutoMode: (sessionId: string, value: boolean) => void
+  updateAgentMeta: (
+    sessionId: string,
+    fields: { name?: string; role?: string; description?: string; goal?: string }
+  ) => void
   recordOutput: (sessionId: string, data: string) => void
   recordInput: (sessionId: string) => void
   removeAgent: (sessionId: string) => void
   requestFocus: (sessionId: string) => void
   setSelected: (sessionId: string | null) => void
   toggleAutoMode: () => void
+  pushConversation: (agentId: string, item: ConversationItem) => void
+  clearConversation: (agentId: string) => void
   addProject: (path: string) => void
   removeProject: (path: string) => void
   addTask: (sessionId: string, text: string) => void
@@ -80,6 +94,7 @@ let focusNonce = 0
 let idCounter = 0
 let taskIdCounter = 0
 let draftCounter = 0
+let conversationCounter = 0
 
 const AUTO_KEY = 'pixelforge-auto-mode'
 const PROJECTS_KEY = 'pixelforge-projects'
@@ -128,6 +143,7 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
   activity: {},
   tasks: {},
   memory: [],
+  conversations: {},
 
   upsertAgent: (session) =>
     set((state) => {
@@ -247,7 +263,10 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
         activity: Object.fromEntries(
           Object.entries(state.activity).filter(([id]) => id !== sessionId)
         ),
-        tasks: Object.fromEntries(Object.entries(state.tasks).filter(([id]) => id !== sessionId))
+        tasks: Object.fromEntries(Object.entries(state.tasks).filter(([id]) => id !== sessionId)),
+        conversations: Object.fromEntries(
+          Object.entries(state.conversations).filter(([id]) => id !== sessionId)
+        )
       }
     })
   },
@@ -259,6 +278,15 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
         return state
       }
       return { agents: { ...state.agents, [sessionId]: { ...agent, autoMode: value } } }
+    }),
+
+  updateAgentMeta: (sessionId, fields) =>
+    set((state) => {
+      const agent = state.agents[sessionId]
+      if (!agent) {
+        return state
+      }
+      return { agents: { ...state.agents, [sessionId]: { ...agent, ...fields } } }
     }),
 
   requestFocus: (sessionId) =>
@@ -331,5 +359,18 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
 
   clearActivity: (sessionId) => {
     set({ activity: { ...get().activity, [sessionId]: [] } })
+  },
+
+  pushConversation: (agentId, item) => {
+    set({
+      conversations: {
+        ...get().conversations,
+        [agentId]: [...(get().conversations[agentId] ?? []), { ...item, id: ++conversationCounter }]
+      }
+    })
+  },
+
+  clearConversation: (agentId) => {
+    set({ conversations: { ...get().conversations, [agentId]: [] } })
   }
 }))

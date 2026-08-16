@@ -1,26 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { OfficeRenderer } from '../office/renderOffice'
 import { useOfficeStore } from '../office/store'
-
-export type ZoomLevel = 'fit' | 1 | 2 | 3
-
-const ZOOM_OPTIONS: ZoomLevel[] = ['fit', 1, 2, 3]
 
 export function OfficeCanvas(): React.JSX.Element {
   const stageRef = useRef<HTMLDivElement>(null)
   const rendererRef = useRef<OfficeRenderer | null>(null)
-  const zoomRef = useRef<ZoomLevel>('fit')
-  const [zoom, setZoom] = useState<ZoomLevel>('fit')
   const requestFocus = useOfficeStore((s) => s.requestFocus)
-
-  zoomRef.current = zoom
 
   const fit = useCallback((): void => {
     const el = stageRef.current
     if (!el) {
       return
     }
-    rendererRef.current?.resize(el.clientWidth, el.clientHeight, zoomRef.current)
+    rendererRef.current?.resize(el.clientWidth, el.clientHeight)
   }, [])
 
   useEffect(() => {
@@ -71,22 +63,11 @@ export function OfficeCanvas(): React.JSX.Element {
 
   return (
     <div className="office-canvas">
-      <div className="office-canvas-stage" ref={stageRef} />
       <div className="office-toolbar">
         <span className="office-toolbar-title">STUDIO FLOOR</span>
-        <div className="office-zoom">
-          {ZOOM_OPTIONS.map((level) => (
-            <button
-              key={String(level)}
-              className={`office-zoom-btn ${zoom === level ? 'active' : ''}`}
-              onClick={() => setZoom(level)}
-              title={level === 'fit' ? 'Fit to window' : `${level}× zoom`}
-            >
-              {level === 'fit' ? 'FIT' : `${level}×`}
-            </button>
-          ))}
-        </div>
+        <span className="office-toolbar-title">SELECT A COWORKER</span>
       </div>
+      <div className="office-canvas-stage" ref={stageRef} />
     </div>
   )
 }

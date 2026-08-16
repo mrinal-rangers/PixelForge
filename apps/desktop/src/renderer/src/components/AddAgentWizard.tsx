@@ -65,7 +65,6 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
   const [importError, setImportError] = useState<string | null>(null)
   const [description, setDescription] = useState('')
   const [goal, setGoal] = useState('')
-  const [autoMode, setAutoMode] = useState(useOfficeStore.getState().autoMode)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -129,9 +128,6 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
       if (config.command) {
         setCustomCommand(config.command)
       }
-      if (config.autoMode !== undefined) {
-        setAutoMode(config.autoMode)
-      }
     } finally {
       setImporting(false)
     }
@@ -175,7 +171,7 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
         goal,
         avatarId,
         accent,
-        autoMode,
+        autoMode: true,
         cols: terminalSize.cols,
         rows: terminalSize.rows
       }
@@ -203,7 +199,7 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
     }
     useOfficeStore
       .getState()
-      .hireAgent({ name, role, description, goal, avatarId, accent, autoMode })
+      .hireAgent({ name, role, description, goal, avatarId, accent, autoMode: true })
     useOfficeStore.getState().addProject(projectPath)
     onClose()
   }
@@ -451,17 +447,6 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
                   placeholder="What they are working toward…"
                   rows={3}
                 />
-              </div>
-              <div className="field-row">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={autoMode}
-                    onChange={(e) => setAutoMode(e.target.checked)}
-                  />
-                  Auto mode
-                </label>
-                <span className="section-desc">Let the coworker run without prompts.</span>
               </div>
             </div>
           )}

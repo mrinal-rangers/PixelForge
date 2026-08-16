@@ -2,13 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { OfficeCanvas } from './components/OfficeCanvas'
-import { AgentRoster } from './components/AgentRoster'
 import { CommandCenter } from './components/CommandCenter'
 import { AddAgentWizard } from './components/AddAgentWizard'
-import { MemoryPanel } from './components/MemoryPanel'
 import { GemLogo } from './components/GemLogo'
 import { MoonIcon, SunIcon } from './components/ThemeIcon'
-import { FullscreenIcon, SettingsIcon } from './components/ChromeIcon'
+import { FullscreenIcon, SettingsIcon, PlusIcon } from './components/ChromeIcon'
 import { useOfficeStore } from './office/store'
 import type { CliInfo } from '@shared/types'
 
@@ -20,7 +18,6 @@ const THEME_KEY = 'pixelforge-theme'
 function App(): React.JSX.Element {
   const [clis, setClis] = useState<CliInfo[]>([])
   const [wizardOpen, setWizardOpen] = useState(false)
-  const [memoryOpen, setMemoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem(THEME_KEY)
@@ -34,8 +31,6 @@ function App(): React.JSX.Element {
   })
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
 
-  const autoMode = useOfficeStore((s) => s.autoMode)
-  const toggleAutoMode = useOfficeStore((s) => s.toggleAutoMode)
   const agents = useOfficeStore(useShallow((s) => Object.values(s.agents)))
   const selectedId = useOfficeStore((s) => s.selectedId)
 
@@ -125,12 +120,14 @@ function App(): React.JSX.Element {
         </div>
         <div className="header-right">
           <button
-            className={`auto-pill ${autoMode ? 'on' : ''}`}
-            onClick={toggleAutoMode}
-            title="Toggle auto mode"
+            className="auto-pill"
+            onClick={() => setWizardOpen(true)}
+            title="Add a coworker"
           >
-            <span className="auto-pill-dot" />
-            AUTO MODE {autoMode ? 'ON' : 'OFF'}
+            <span className="theme-icon" aria-hidden="true">
+              <PlusIcon className="chrome-svg" />
+            </span>
+            ADD
           </button>
           <button
             className="theme-toggle"
@@ -162,16 +159,6 @@ function App(): React.JSX.Element {
             </button>
             {settingsOpen && (
               <div className="settings-popover">
-                <button className="settings-item" onClick={toggleAutoMode}>
-                  <span>Auto mode</span>
-                  <span className={autoMode ? 'setting-on' : 'setting-off'}>
-                    {autoMode ? 'ON' : 'OFF'}
-                  </span>
-                </button>
-                <button className="settings-item" onClick={() => setMemoryOpen(true)}>
-                  <span>Shared memory</span>
-                  <span className="setting-link">open</span>
-                </button>
                 <button
                   className="settings-item settings-danger"
                   onClick={resetWorkspace}
@@ -190,17 +177,11 @@ function App(): React.JSX.Element {
           <section className="office-panel">
             <OfficeCanvas />
           </section>
-          <AgentRoster onAdd={() => setWizardOpen(true)} />
         </div>
         <div className="command-resizer" onPointerDown={startResize} title="Drag to resize" />
         <section className="command-panel" style={{ width: commandWidth }}>
           {selectedId ? (
-            <CommandCenter
-              agentId={selectedId}
-              clis={clis}
-              terminalSizeRef={terminalSizeRef}
-              onOpenMemory={() => setMemoryOpen(true)}
-            />
+            <CommandCenter key={selectedId} agentId={selectedId} clis={clis} terminalSizeRef={terminalSizeRef} />
           ) : (
             <div className="command-center">
               <div className="cc-empty">
@@ -218,7 +199,6 @@ function App(): React.JSX.Element {
       {wizardOpen && (
         <AddAgentWizard clis={clis} terminalSize={terminalSizeRef.current} onClose={() => setWizardOpen(false)} />
       )}
-      {memoryOpen && <MemoryPanel onClose={() => setMemoryOpen(false)} />}
     </div>
   )
 }
