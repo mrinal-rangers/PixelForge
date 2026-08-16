@@ -129,6 +129,112 @@ export interface WorktreeResult {
   error?: string
 }
 
+export type TaskStatus = 'todo' | 'ongoing' | 'needs-input' | 'done' | 'failed'
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
+
+export interface TaskAttachment {
+  id: string
+  name: string
+  path?: string
+  ts: number
+}
+
+export type TaskEventType =
+  | 'created'
+  | 'assigned'
+  | 'started'
+  | 'paused'
+  | 'resumed'
+  | 'progress'
+  | 'question'
+  | 'answer'
+  | 'files'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'reassigned'
+  | 'instruction'
+  | 'note'
+
+export interface TaskEvent {
+  id: number
+  type: TaskEventType
+  text: string
+  ts: number
+}
+
+export interface TaskQuestion {
+  id: number
+  /** What the coworker needs to continue. */
+  need: string
+  /** Why it is needed. */
+  why?: string
+  /** What happens if the user does nothing. */
+  consequence?: string
+  /** Available choices. */
+  choices?: string[]
+  /** The option the coworker recommends. */
+  recommended?: string
+  answer?: string
+  answeredAt?: number | null
+}
+
+export interface CompletionReport {
+  summary: string
+  files: string[]
+  commands: string[]
+  tests: string
+  concerns: string
+  next: string[]
+}
+
+export interface TaskSubtask {
+  id: string
+  text: string
+  done: boolean
+}
+
+export interface TaskRecord {
+  id: string
+  title: string
+  instructions: string
+  projectPath?: string
+  assignedAgentId?: string
+  priority: TaskPriority
+  deadline?: number
+  attachments: TaskAttachment[]
+  /** Task ids this task depends on (must be done before this starts). */
+  dependencies: string[]
+  /** Task ids that depend on this task (derived, kept in sync). */
+  dependents: string[]
+  requirements?: string
+  status: TaskStatus
+  subtasks: TaskSubtask[]
+  /** Readable progress lines from real agent reports. */
+  progress: string[]
+  events: TaskEvent[]
+  questions: TaskQuestion[]
+  report?: CompletionReport
+  filesChanged: string[]
+  createdAt: number
+  startedAt?: number
+  pausedAt?: number
+  updatedAt: number
+  completedAt?: number
+}
+
+export interface NewTaskInput {
+  title: string
+  instructions: string
+  projectPath?: string
+  assignedAgentId?: string
+  priority: TaskPriority
+  deadline?: number
+  attachments: TaskAttachment[]
+  dependencies: string[]
+  requirements?: string
+}
+
 export interface WorkspaceApi {
   getAppInfo(): Promise<AppInfo>
   saveCoworker(config: CoworkerConfig): Promise<void>
@@ -136,6 +242,10 @@ export interface WorkspaceApi {
   removeCoworker(id: string): Promise<void>
   worktreeAdd(basePath: string, name: string): Promise<WorktreeResult>
   worktreeRemove(basePath: string, worktreePath: string): Promise<{ ok: boolean; error?: string }>
+  taskCreate(input: NewTaskInput): Promise<TaskRecord>
+  taskSave(task: TaskRecord): Promise<TaskRecord>
+  taskList(): Promise<TaskRecord[]>
+  taskRemove(taskId: string): Promise<void>
   selectProject(): Promise<string | null>
   selectFiles(): Promise<string[] | null>
   listClis(): Promise<CliInfo[]>

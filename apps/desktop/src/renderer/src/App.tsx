@@ -11,6 +11,10 @@ import { GemLogo } from './components/GemLogo'
 import { MoonIcon, SunIcon } from './components/ThemeIcon'
 import { SettingsIcon } from './components/ChromeIcon'
 import { useOfficeStore } from './office/store'
+import { useTaskStore } from './office/taskStore'
+import { parseTaskOutput } from './office/taskEvents'
+import { TaskBoard } from './components/TaskBoard'
+import { NotificationHost } from './components/NotificationHost'
 import type { CliInfo } from '@shared/types'
 
 const VERSION = 'v0.4.3'
@@ -18,6 +22,8 @@ const SETUP_DISMISS_KEY = 'pixelforge-setup-dismissed'
 
 type Theme = 'dark' | 'light'
 const THEME_KEY = 'pixelforge-theme'
+
+type PanelView = 'coworker' | 'board'
 
 function App(): React.JSX.Element {
   const [clis, setClis] = useState<CliInfo[]>([])
@@ -28,6 +34,7 @@ function App(): React.JSX.Element {
   )
   const [sessionsLoaded, setSessionsLoaded] = useState(false)
   const [setupError, setSetupError] = useState<string | null>(null)
+  const [panelView, setPanelView] = useState<PanelView>('coworker')
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem(THEME_KEY)
     return stored === 'dark' ? 'dark' : 'light'
@@ -42,6 +49,14 @@ function App(): React.JSX.Element {
 
   const agents = useOfficeStore(useShallow((s) => Object.values(s.agents)))
   const selectedId = useOfficeStore((s) => s.selectedId)
+  const taskCounts = useTaskStore(useShallow((s) => {
+    const list = Object.values(s.tasks)
+    return {
+      total: list.length,
+      needsInput: list.filter((t) => t.status === 'needs-input').length,
+      ongoing: list.filter((t) => t.status === 'ongoing').length
+    }
+  }))
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -59,8 +74,39 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const unsubscribe = window.workspace.onSessionStatus(({ session }) => {
       useOfficeStore.getState().upsertAgent(session)
+      const tasks = Object.values(useTaskStore.getState().tasks).filter(
+        (t) => t.assignedAgentId === session.id && t.status === 'ongoing'
+      )
+      if (session.status === 'error') {
+        for (const task of tasks) {
+          useTaskStore.getState().failTask(task.id, 'The terminal process failed.')
+        }
+      } else if (session.status === 'stopped' || session.status === 'completed') {
+        for (const task of tasks) {
+          useTaskStore.getState().setStatus(task.id, 'todo')
+          useTaskStore.getState().addEvent(
+            task.id,
+            'note',
+            session.status === 'completed'
+              ? 'Session ended before the task reported completion'
+              : 'Terminal stopped; task paused'
+          )
+        }
+      }
     })
     return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = window.workspace.onSessionOutput(({ sessionId, data }) => {
+      useOfficeStore.getState().recordOutput(sessionId, data)
+      parseTaskOutput(sessionId, data)
+    })
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    void useTaskStore.getState().hydrate()
   }, [])
 
   useEffect(() => {
@@ -159,6 +205,18 @@ function App(): React.JSX.Element {
         </div>
         <div className="header-right">
           <button
+            className={`theme-toggle ${panelView === 'board' ? 'active-toggle' : ''}`}
+            onClick={() => setPanelView((prev) => (prev === 'board' ? 'coworker' : 'board'))}
+            title="Open the shared task board"
+          >
+            <span className="theme-icon" aria-hidden="true">
+              <TasksIcon />
+            </span>
+            {taskCounts.needsInput > 0 && (
+              <span className="task-badge header-task-badge">{taskCounts.needsInput}</span>
+            )}
+          </button>
+          <button
             className="theme-toggle"
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -198,16 +256,34 @@ function App(): React.JSX.Element {
             </div>
             <div className="command-resizer" onPointerDown={startResize} title="Drag to resize" />
             <section className="command-panel" style={{ width: commandWidth }}>
-              {selectedId ? (
-                <CommandCenter key={selectedId} agentId={selectedId} clis={clis} terminalSizeRef={terminalSizeRef} />
+              {panelView === 'board' ? (
+                <TaskBoard
+                  onOpenTerminal={(agentId) => {
+                    useOfficeStore.getState().requestFocus(agentId)
+                    setPanelView('coworker')
+                  }}
+                />
+              ) : selectedId ? (
+                <CommandCenter
+                  key={selectedId}
+                  agentId={selectedId}
+                  clis={clis}
+                  terminalSizeRef={terminalSizeRef}
+                  onOpenBoard={() => setPanelView('board')}
+                />
               ) : (
                 <div className="command-center">
                   <div className="cc-empty">
                     <span className="cc-empty-glyph">+</span>
                     <p>No coworker selected.</p>
-                    <button className="btn btn-primary" onClick={() => setWizardOpen(true)}>
-                      Add Agent
-                    </button>
+                    <div className="cc-actions">
+                      <button className="btn btn-primary" onClick={() => setWizardOpen(true)}>
+                        Add Agent
+                      </button>
+                      <button className="btn" onClick={() => setPanelView('board')}>
+                        Open Task Board
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -221,7 +297,20 @@ function App(): React.JSX.Element {
       )}
 
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+
+      <NotificationHost />
     </div>
+  )
+}
+
+function TasksIcon(): React.JSX.Element {
+  return (
+    <svg className="chrome-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="3" width="7" height="7" fill="currentColor" />
+      <rect x="14" y="3" width="7" height="7" fill="currentColor" opacity="0.55" />
+      <rect x="3" y="14" width="7" height="7" fill="currentColor" opacity="0.55" />
+      <rect x="14" y="14" width="7" height="7" fill="currentColor" />
+    </svg>
   )
 }
 

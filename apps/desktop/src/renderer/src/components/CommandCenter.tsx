@@ -4,15 +4,17 @@ import { TerminalView } from './TerminalView'
 import { MiniAvatar } from './MiniAvatar'
 import { getAvatar, DEFAULT_COWORKER } from '../office/characters'
 import { useOfficeStore } from '../office/store'
+import { useTaskStore, taskLoadFor } from '../office/taskStore'
 import type { OfficeAgentRecord } from '../office/store'
 import type { CliInfo, SessionStatus } from '@shared/types'
 
-type WorkerTabId = 'terminal' | 'git' | 'messages' | 'traces'
+type WorkerTabId = 'terminal' | 'tasks' | 'git' | 'messages' | 'traces'
 type ManagerTabId = 'terminal' | 'monitor' | 'tasks' | 'ask-me' | 'commands' | 'memory'
 type TabId = WorkerTabId | ManagerTabId
 
 const WORKER_TABS: { id: WorkerTabId; label: string }[] = [
   { id: 'terminal', label: 'Terminal' },
+  { id: 'tasks', label: 'Tasks' },
   { id: 'git', label: 'Git' },
   { id: 'messages', label: 'Messages' },
   { id: 'traces', label: 'Traces' }
@@ -36,9 +38,6 @@ const STATUS_LABELS: Record<SessionStatus, string> = {
   error: 'Error'
 }
 
-const TASK_STATUSES = ['todo', 'doing', 'blocked', 'done'] as const
-type TaskStatus = (typeof TASK_STATUSES)[number]
-
 const MANAGER_COMMANDS = [
   { id: 'compact', label: 'Compact', hint: 'Compact the session history' },
   { id: 'help', label: 'Help', hint: 'List every command available' },
@@ -48,18 +47,11 @@ const MANAGER_COMMANDS = [
   { id: 'memory', label: 'Memory', hint: 'Open the manager memory file' }
 ]
 
-interface ManagerTask {
-  id: number
-  text: string
-  status: TaskStatus
-}
-
-let managerTaskId = 0
-
 interface CommandCenterProps {
   agentId: string
   clis: CliInfo[]
   terminalSizeRef: React.MutableRefObject<{ cols: number; rows: number }>
+  onOpenBoard: () => void
 }
 
 function formatUptime(startedAt?: number): string {
@@ -75,7 +67,8 @@ function formatUptime(startedAt?: number): string {
 export function CommandCenter({
   agentId,
   clis,
-  terminalSizeRef
+  terminalSizeRef,
+  onOpenBoard
 }: CommandCenterProps): React.JSX.Element {
   const agent = useOfficeStore((s) => s.agents[agentId])
   const agents = useOfficeStore(useShallow((s) => Object.values(s.agents)))
@@ -89,14 +82,14 @@ export function CommandCenter({
   const addMemory = useOfficeStore((s) => s.addMemory)
   const removeMemory = useOfficeStore((s) => s.removeMemory)
   const requestFocus = useOfficeStore((s) => s.requestFocus)
+  const teamTasks = useTaskStore(useShallow((s) => Object.values(s.tasks)))
+  const selectTask = useTaskStore((s) => s.selectTask)
+  const answerQuestionForAgent = useTaskStore((s) => s.answerQuestionForAgent)
 
   const isManager = agent?.id === managerId
 
   const [tab, setTab] = useState<TabId>('terminal')
   const [draft, setDraft] = useState('')
-  const [taskDraft, setTaskDraft] = useState('')
-  const [taskStatus, setTaskStatus] = useState<TaskStatus>('todo')
-  const [tasks, setTasks] = useState<ManagerTask[]>([])
   const [memoryDraft, setMemoryDraft] = useState('')
   const [memoryMode, setMemoryMode] = useState<'markdown' | 'text'>('markdown')
   const [editing, setEditing] = useState(false)
@@ -185,32 +178,22 @@ export function CommandCenter({
       return
     }
     pushConversation(agent.id, { id: 0, from: 'me', text, ts: Date.now() })
-    setDraft('')
-  }
-
-  const addTaskNow = (): void => {
-    const text = taskDraft.trim()
-    if (!text) {
-      return
+    if (!isDraft) {
+      const open = Object.values(useTaskStore.getState().tasks).find(
+        (t) =>
+          t.assignedAgentId === agent.id &&
+          t.status === 'needs-input' &&
+          t.questions.some((q) => q.answeredAt == null)
+      )
+      if (open) {
+        answerQuestionForAgent(agent.id, text)
+        setDraft('')
+        return
+      }
+      window.workspace.sendInput(agent.id, text + '\r')
+      useOfficeStore.getState().recordInput(agent.id)
     }
-    setTasks((prev) => [...prev, { id: ++managerTaskId, text, status: 'todo' }])
-    setTaskDraft('')
-  }
-
-  const advanceTask = (id: number): void => {
-    setTasks((prev) =>
-      prev.map((task) => {
-        if (task.id !== id) {
-          return task
-        }
-        const index = TASK_STATUSES.indexOf(task.status)
-        return { ...task, status: TASK_STATUSES[Math.min(index + 1, TASK_STATUSES.length - 1)] }
-      })
-    )
-  }
-
-  const removeTask = (id: number): void => {
-    setTasks((prev) => prev.filter((task) => task.id !== id))
+    setDraft('')
   }
 
   const addMemoryNow = (): void => {
@@ -310,7 +293,9 @@ export function CommandCenter({
             </div>
           ))}
         </div>
-        <p className="cc-scaffold-hint">Delivery to the engine is not wired yet.</p>
+        <p className="cc-scaffold-hint">
+          Messages are typed straight into the coworker's live terminal.
+        </p>
       </div>
     )
   }
@@ -337,6 +322,8 @@ export function CommandCenter({
     switch (tab) {
       case 'terminal':
         return renderTerminal()
+      case 'tasks':
+        return renderWorkerTasks()
       case 'git':
         return renderGit()
       case 'messages':
@@ -483,63 +470,124 @@ export function CommandCenter({
   }
 
   const renderTasks = (): React.JSX.Element => {
-    const visible = tasks.filter((task) => task.status === taskStatus)
+    const counts = { todo: 0, ongoing: 0, 'needs-input': 0, done: 0, failed: 0 }
+    for (const task of teamTasks) {
+      counts[task.status] += 1
+    }
+    const recent = [...teamTasks]
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 8)
     return (
       <div className="cc-panel">
-        <div className="field-row">
-          <input
-            className="text-input"
-            value={taskDraft}
-            onChange={(e) => setTaskDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                addTaskNow()
-              }
-            }}
-            placeholder="Add a task…"
-          />
-          <button className="btn btn-small" onClick={addTaskNow}>
-            Add
+        <div className="cc-panel-tools">
+          <span className="section-desc">SHARED TASK BOARD</span>
+          <button className="btn btn-small" onClick={onOpenBoard}>
+            Open Board
           </button>
         </div>
         <div className="task-subtabs">
-          {TASK_STATUSES.map((status) => {
-            const count = tasks.filter((task) => task.status === status).length
-            return (
-              <button
-                key={status}
-                className={`task-subtab ${taskStatus === status ? 'active' : ''}`}
-                onClick={() => setTaskStatus(status)}
-              >
-                {status}
-                <span className="task-subtab-count">{count}</span>
-              </button>
-            )
-          })}
-        </div>
-        <div className="task-list">
-          {visible.length === 0 && <p className="cc-placeholder">Nothing {taskStatus}.</p>}
-          {visible.map((task) => (
-            <div key={task.id} className={`task-item task-${task.status}`}>
-              <span className="task-text">{task.text}</span>
-              <button
-                className="btn-icon btn-icon-small"
-                onClick={() => advanceTask(task.id)}
-                title="Advance status"
-                disabled={task.status === 'done'}
-              >
-                ›
-              </button>
-              <button
-                className="btn-icon btn-icon-small"
-                onClick={() => removeTask(task.id)}
-                title="Remove task"
-              >
-                ×
-              </button>
-            </div>
+          {(['todo', 'ongoing', 'needs-input', 'done', 'failed'] as const).map((status) => (
+            <button
+              key={status}
+              className={`task-subtab ${status === 'needs-input' && counts[status] > 0 ? 'attention' : ''}`}
+              onClick={() => {
+                selectTask(null)
+                onOpenBoard()
+              }}
+            >
+              {status}
+              <span className="task-subtab-count">{counts[status]}</span>
+            </button>
           ))}
         </div>
+        <div className="task-list">
+          {recent.length === 0 && (
+            <p className="cc-placeholder">No tasks yet. Create the first one from the board.</p>
+          )}
+          {recent.map((task) => (
+            <button
+              key={task.id}
+              className={`task-item task-${task.status}`}
+              onClick={() => {
+                selectTask(task.id)
+                onOpenBoard()
+              }}
+            >
+              <span className="task-text">{task.title}</span>
+              <span className={`status-badge task-status-${task.status}`}>{task.status}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const renderWorkerTasks = (): React.JSX.Element => {
+    const load = taskLoadFor(Object.fromEntries(teamTasks.map((t) => [t.id, t])), agent.id)
+    return (
+      <div className="cc-panel">
+        <div className="cc-panel-tools">
+          <span className="section-desc">
+            {load.active.length + load.needsInput.length > 0 ? 'WORKING' : 'AVAILABLE'}
+          </span>
+          <button className="btn btn-small" onClick={onOpenBoard}>
+            Open Board
+          </button>
+        </div>
+        <span className="task-block-label">ACTIVE TASK</span>
+        <div className="task-list">
+          {load.active.length === 0 && load.needsInput.length === 0 && (
+            <p className="cc-placeholder">No active task. Assign one from the board.</p>
+          )}
+          {[...load.active, ...load.needsInput].map((task) => (
+            <button
+              key={task.id}
+              className={`task-item task-${task.status}`}
+              onClick={() => {
+                selectTask(task.id)
+                onOpenBoard()
+              }}
+            >
+              <span className="task-text">{task.title}</span>
+              <span className={`status-badge task-status-${task.status}`}>{task.status}</span>
+            </button>
+          ))}
+        </div>
+        <span className="task-block-label">QUEUE ({load.queue.length})</span>
+        <div className="task-list">
+          {load.queue.length === 0 && <p className="cc-placeholder">Queue is empty.</p>}
+          {load.queue.map((task) => (
+            <button
+              key={task.id}
+              className="task-item task-todo"
+              onClick={() => {
+                selectTask(task.id)
+                onOpenBoard()
+              }}
+            >
+              <span className="task-text">{task.title}</span>
+            </button>
+          ))}
+        </div>
+        {load.history.length > 0 && (
+          <>
+            <span className="task-block-label">HISTORY ({load.history.length})</span>
+            <div className="task-list">
+              {load.history.slice(0, 8).map((task) => (
+                <button
+                  key={task.id}
+                  className={`task-item task-${task.status}`}
+                  onClick={() => {
+                    selectTask(task.id)
+                    onOpenBoard()
+                  }}
+                >
+                  <span className="task-text">{task.title}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     )
   }

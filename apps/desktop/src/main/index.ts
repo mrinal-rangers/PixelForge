@@ -9,7 +9,8 @@ import { detectClis, detectOneCli, getCliDefinition, listCliDefinitions } from '
 import { AgentSession, SessionManager } from './session/sessionManager'
 import { saveCoworker, listCoworkers, removeCoworker } from './coworkerStore'
 import { worktreeAdd, worktreeRemove } from './gitWorktree'
-import type { CliInfo, CreateSessionOptions, CoworkerConfig } from '../shared/types'
+import { createTask, listTasks, removeTask, saveTask } from './taskStore'
+import type { CliInfo, CreateSessionOptions, CoworkerConfig, NewTaskInput, TaskRecord } from '../shared/types'
 
 const sessionManager = new SessionManager()
 
@@ -83,6 +84,16 @@ function registerIpcHandlers(): void {
   ipcMain.handle('git:worktreeRemove', (_event, basePath: string, worktreePath: string) =>
     worktreeRemove(basePath, worktreePath)
   )
+
+  ipcMain.handle('task:create', (_event, input: NewTaskInput) => createTask(input))
+
+  ipcMain.handle('task:save', (_event, task: TaskRecord) => saveTask(task))
+
+  ipcMain.handle('task:list', () => listTasks())
+
+  ipcMain.handle('task:remove', (_event, taskId: string) => {
+    removeTask(taskId)
+  })
 
   ipcMain.handle('dialog:selectProject', async () => {
     const result = await dialog.showOpenDialog({

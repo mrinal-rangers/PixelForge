@@ -28,12 +28,6 @@ export interface OfficeAgentRecord {
   createdAt?: number
 }
 
-export interface AgentTask {
-  id: string
-  text: string
-  done: boolean
-}
-
 export interface MemoryNote {
   id: string
   agentId: string
@@ -73,7 +67,6 @@ interface OfficeState {
   autoMode: boolean
   projects: string[]
   activity: Record<string, string[]>
-  tasks: Record<string, AgentTask[]>
   memory: MemoryNote[]
   conversations: Record<string, ConversationItem[]>
   upsertAgent: (session: SessionInfo) => void
@@ -94,9 +87,6 @@ interface OfficeState {
   clearConversation: (agentId: string) => void
   addProject: (path: string) => void
   removeProject: (path: string) => void
-  addTask: (sessionId: string, text: string) => void
-  toggleTask: (sessionId: string, taskId: string) => void
-  removeTask: (sessionId: string, taskId: string) => void
   addMemory: (agentId: string, text: string) => void
   removeMemory: (noteId: string) => void
   clearActivity: (sessionId: string) => void
@@ -104,7 +94,6 @@ interface OfficeState {
 
 let focusNonce = 0
 let idCounter = 0
-let taskIdCounter = 0
 let draftCounter = 0
 let conversationCounter = 0
 
@@ -198,7 +187,6 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
   autoMode: localStorage.getItem(AUTO_KEY) !== 'off',
   projects: loadProjects(),
   activity: {},
-  tasks: {},
   memory: [],
   conversations: {},
 
@@ -397,7 +385,6 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
         activity: Object.fromEntries(
           Object.entries(state.activity).filter(([id]) => id !== sessionId)
         ),
-        tasks: Object.fromEntries(Object.entries(state.tasks).filter(([id]) => id !== sessionId)),
         conversations: Object.fromEntries(
           Object.entries(state.conversations).filter(([id]) => id !== sessionId)
         )
@@ -454,36 +441,6 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
     const projects = get().projects.filter((p) => p !== path)
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects))
     set({ projects })
-  },
-
-  addTask: (sessionId, text) => {
-    const task = { id: `t${++taskIdCounter}`, text, done: false }
-    set({
-      tasks: {
-        ...get().tasks,
-        [sessionId]: [...(get().tasks[sessionId] ?? []), task]
-      }
-    })
-  },
-
-  toggleTask: (sessionId, taskId) => {
-    set({
-      tasks: {
-        ...get().tasks,
-        [sessionId]: (get().tasks[sessionId] ?? []).map((task) =>
-          task.id === taskId ? { ...task, done: !task.done } : task
-        )
-      }
-    })
-  },
-
-  removeTask: (sessionId, taskId) => {
-    set({
-      tasks: {
-        ...get().tasks,
-        [sessionId]: (get().tasks[sessionId] ?? []).filter((task) => task.id !== taskId)
-      }
-    })
   },
 
   addMemory: (agentId, text) => {

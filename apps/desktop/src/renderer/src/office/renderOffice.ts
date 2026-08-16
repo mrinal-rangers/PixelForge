@@ -1,6 +1,7 @@
 import 'pixi.js/unsafe-eval'
 import { Application, Assets, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
 import { useOfficeStore } from './store'
+import { useTaskStore } from './taskStore'
 import type { OfficeAgentRecord } from './store'
 import officeFloorUrl from '../assets/pixel-office/office-floor.png'
 import lookRedUrl from '../assets/pixel-office/red.png'
@@ -21,6 +22,7 @@ const FLOOR_H = 896
 const WORK_IDLE_MS = 2800
 const ATTENTION_MS = 1400
 const WALK_SPEED = 3.2
+const SUCCESS_MS = 4000
 
 const PIXEL_FONT = 'PressStart, monospace'
 
@@ -66,8 +68,10 @@ interface AgentBehavior {
   shadow: Graphics
   label: Container
   marker: Graphics
+  taskIcon: Graphics
   look: string
   visual: VisualState
+  lastBubble: 'attention' | 'error' | 'success' | null
   prevStatus: string
   animTime: number
   homeX: number
@@ -201,6 +205,10 @@ export class OfficeRenderer {
     marker.visible = false
     container.addChild(marker)
 
+    const taskIcon = new Graphics()
+    taskIcon.visible = false
+    container.addChild(taskIcon)
+
     const behavior: AgentBehavior = {
       id,
       container,
@@ -208,8 +216,10 @@ export class OfficeRenderer {
       shadow,
       label,
       marker,
+      taskIcon,
       look,
       visual: 'idle',
+      lastBubble: null,
       prevStatus: record.status,
       animTime: 0,
       homeX: slot.x,
@@ -282,7 +292,10 @@ export class OfficeRenderer {
     this.setLabelDot(behavior, color)
   }
 
-  private setBubble(behavior: AgentBehavior, kind: 'attention' | 'error' | null): void {
+  private setBubble(
+    behavior: AgentBehavior,
+    kind: 'attention' | 'error' | 'success' | null
+  ): void {
     const old = behavior.container.getChildByLabel('bubble')
     if (old) {
       old.destroy({ children: true })
@@ -293,19 +306,35 @@ export class OfficeRenderer {
     const bubble = new Container()
     bubble.label = 'bubble'
     const g = new Graphics()
-    const color = kind === 'attention' ? '#ffcc33' : '#ff5c5c'
+    const color = kind === 'attention' ? '#ffcc33' : kind === 'error' ? '#ff5c5c' : '#3ad95e'
     g.roundRect(0, 0, 18, 18, 4).fill(color).stroke({ width: 3, color: '#141a2e' })
     g.rect(5, 16, 4, 4).fill(color)
     bubble.addChild(g)
     const glyph = new Text({
-      text: kind === 'attention' ? '?' : '!',
-      style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: '#ffffff', stroke: { color: '#141a2e', width: 3 } }
+      text: kind === 'attention' ? '?' : kind === 'error' ? '!' : '✓',
+      style: { fontFamily: PIXEL_FONT, fontSize: kind === 'success' ? 10 : 12, fill: '#ffffff', stroke: { color: '#141a2e', width: 3 } }
     })
     glyph.anchor.set(0.5)
     glyph.position.set(9, 9)
     bubble.addChild(glyph)
     bubble.position.set(10, -92)
     behavior.container.addChild(bubble)
+  }
+
+  private setTaskIcon(behavior: AgentBehavior, visible: boolean): void {
+    if (behavior.taskIcon.visible === visible) {
+      return
+    }
+    behavior.taskIcon.visible = visible
+    if (!visible) {
+      return
+    }
+    const g = behavior.taskIcon
+    g.clear()
+    g.rect(0, 0, 10, 12).fill('#f0e6c8').stroke({ width: 2, color: '#141a2e' })
+    g.rect(2, 3, 6, 1).fill('#5a5f78')
+    g.rect(2, 6, 6, 1).fill('#5a5f78')
+    g.position.set(16, -24)
   }
 
   private updateSelectionMarker(behavior: AgentBehavior): void {
@@ -360,10 +389,32 @@ export class OfficeRenderer {
     }
     behavior.prevStatus = status
 
+    const taskState = this.taskStateFor(behavior.id, now)
+    const offline = visual === 'offline'
+    if (!offline && (status === 'running' || status === 'starting')) {
+      if (taskState.hasOpenQuestion) {
+        visual = 'attention'
+      } else if (taskState.hasFailed) {
+        visual = 'error'
+      }
+    }
+    let bubbleKind: 'attention' | 'error' | 'success' | null = null
+    if (taskState.justCompleted) {
+      bubbleKind = 'success'
+    } else if (visual === 'attention') {
+      bubbleKind = 'attention'
+    } else if (visual === 'error') {
+      bubbleKind = 'error'
+    }
+
     if (visual !== behavior.visual) {
       behavior.visual = visual
-      this.setBubble(behavior, visual === 'attention' ? 'attention' : visual === 'error' ? 'error' : null)
     }
+    if (bubbleKind !== behavior.lastBubble) {
+      behavior.lastBubble = bubbleKind
+      this.setBubble(behavior, bubbleKind)
+    }
+    this.setTaskIcon(behavior, !offline && taskState.hasQueued)
 
     if (behavior.entering) {
       const dx = behavior.homeX - behavior.container.position.x
@@ -387,11 +438,35 @@ export class OfficeRenderer {
       behavior.sprite.y = 0
     }
 
-    const offline = visual === 'offline'
     behavior.sprite.alpha = offline ? 0.35 : 1
     behavior.label.alpha = offline ? 0.5 : 1
     behavior.shadow.alpha = offline ? 0.4 : 1
     behavior.container.zIndex = Math.round(behavior.container.position.y)
+  }
+
+  private taskStateFor(
+    agentId: string,
+    now: number
+  ): { hasOpenQuestion: boolean; hasFailed: boolean; hasQueued: boolean; justCompleted: boolean } {
+    let hasOpenQuestion = false
+    let hasFailed = false
+    let hasQueued = false
+    let justCompleted = false
+    for (const task of Object.values(useTaskStore.getState().tasks)) {
+      if (task.assignedAgentId !== agentId) {
+        continue
+      }
+      if (task.status === 'needs-input' && task.questions.some((q) => q.answeredAt == null)) {
+        hasOpenQuestion = true
+      } else if (task.status === 'failed') {
+        hasFailed = true
+      } else if (task.status === 'todo') {
+        hasQueued = true
+      } else if (task.status === 'done' && task.completedAt && now - task.completedAt < SUCCESS_MS) {
+        justCompleted = true
+      }
+    }
+    return { hasOpenQuestion, hasFailed, hasQueued, justCompleted }
   }
 
   private wireAgentTap(behavior: AgentBehavior): void {

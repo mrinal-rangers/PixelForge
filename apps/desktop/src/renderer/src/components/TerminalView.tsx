@@ -65,7 +65,6 @@ export function TerminalView({ sessionId, onResize }: TerminalViewProps): React.
     const unsubscribeOutput = window.workspace.onSessionOutput(({ sessionId: id, data }) => {
       if (id === sessionId) {
         term.write(data)
-        useOfficeStore.getState().recordOutput(sessionId, data)
       }
     })
 

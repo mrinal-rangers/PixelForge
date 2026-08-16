@@ -5,8 +5,10 @@ import type {
   CliInstallOutputPayload,
   CliInstallStatusPayload,
   CreateSessionOptions,
+  NewTaskInput,
   SessionOutputPayload,
   SessionStatusPayload,
+  TaskRecord,
   WorkspaceApi
 } from '../shared/types'
 
@@ -24,6 +26,10 @@ const api: WorkspaceApi = {
   worktreeAdd: (basePath, name) => ipcRenderer.invoke('git:worktreeAdd', basePath, name),
   worktreeRemove: (basePath, worktreePath) =>
     ipcRenderer.invoke('git:worktreeRemove', basePath, worktreePath),
+  taskCreate: (input: NewTaskInput) => ipcRenderer.invoke('task:create', input),
+  taskSave: (task: TaskRecord) => ipcRenderer.invoke('task:save', task),
+  taskList: () => ipcRenderer.invoke('task:list'),
+  taskRemove: (taskId) => ipcRenderer.invoke('task:remove', taskId),
   selectProject: () => ipcRenderer.invoke('dialog:selectProject'),
   selectFiles: () => ipcRenderer.invoke('dialog:selectFiles'),
   listClis: () => ipcRenderer.invoke('cli:list'),
