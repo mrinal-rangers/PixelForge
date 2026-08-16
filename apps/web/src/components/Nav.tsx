@@ -39,7 +39,9 @@ export function Nav({ theme, onToggleTheme }: NavProps): React.JSX.Element {
           </nav>
           <div className="nav-cta">
             <a className="btn btn-ghost btn-sm" href={SITE.github} target="_blank" rel="noreferrer">
-              ★ {stars !== null ? formatStars(stars) : 'Star'}
+              <span className="btn-star-ic">★</span>
+              <span>Star</span>
+              <span className="star-count">{stars !== null ? formatStars(stars) : ''}</span>
             </a>
             <button className="btn btn-primary btn-sm" type="button" onClick={() => setModalOpen(true)}>
               ⤓ Download

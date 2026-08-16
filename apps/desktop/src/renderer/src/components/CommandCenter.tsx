@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { TerminalView } from './TerminalView'
 import { MiniAvatar } from './MiniAvatar'
+import { GoalManager } from './GoalManager'
 import { getAvatar, DEFAULT_COWORKER } from '../office/characters'
 import { useOfficeStore } from '../office/store'
 import { useTaskStore, taskLoadFor } from '../office/taskStore'
@@ -9,7 +10,7 @@ import type { OfficeAgentRecord } from '../office/store'
 import type { CliInfo, SessionStatus } from '@shared/types'
 
 type WorkerTabId = 'terminal' | 'tasks' | 'git' | 'messages' | 'traces'
-type ManagerTabId = 'terminal' | 'monitor' | 'tasks' | 'ask-me' | 'commands' | 'memory'
+type ManagerTabId = 'goal' | 'terminal' | 'monitor' | 'tasks' | 'ask-me' | 'commands' | 'memory'
 type TabId = WorkerTabId | ManagerTabId
 
 const WORKER_TABS: { id: WorkerTabId; label: string }[] = [
@@ -21,6 +22,7 @@ const WORKER_TABS: { id: WorkerTabId; label: string }[] = [
 ]
 
 const MANAGER_TABS: { id: ManagerTabId; label: string }[] = [
+  { id: 'goal', label: 'Goal' },
   { id: 'terminal', label: 'Terminal' },
   { id: 'monitor', label: 'Monitor' },
   { id: 'tasks', label: 'Tasks' },
@@ -303,6 +305,8 @@ export function CommandCenter({
   const renderTab = (): React.JSX.Element => {
     if (isManager) {
       switch (tab) {
+        case 'goal':
+          return <GoalManager onOpenBoard={onOpenBoard} />
         case 'terminal':
           return renderTerminal()
         case 'monitor':
@@ -707,6 +711,7 @@ export function CommandCenter({
             <div className="cc-header-row">
               <span className="cc-name">{agent.name}</span>
               <span className={`cc-role-badge ${isManager ? 'manager' : ''}`}>{agent.role}</span>
+              {isManager && <span className="boss-badge">BOSS</span>}
               <span className={`status-badge status-${agent.status}`}>
                 {isDraft ? 'Draft' : STATUS_LABELS[agent.status]}
               </span>

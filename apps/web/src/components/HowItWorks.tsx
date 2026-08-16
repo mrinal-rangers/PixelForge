@@ -24,7 +24,6 @@ export function HowItWorks(): React.JSX.Element {
     <section className="section" id="how-it-works">
       <div className="section-inner">
         <p className="section-kicker">How it works</p>
-        <h2 className="section-title">Three steps to a second you.</h2>
         <p className="section-sub">PixelForge doesn&rsquo;t give you one shared bot — it builds a whole team.</p>
         <div className="steps">
           {STEPS.map((s) => (

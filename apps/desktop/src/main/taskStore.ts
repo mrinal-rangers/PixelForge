@@ -4,12 +4,12 @@ import { app } from 'electron'
 import { join } from 'node:path'
 import { existsSync, mkdirSync } from 'node:fs'
 
-import type { NewTaskInput, TaskRecord } from '../shared/types'
+import type { GoalRecord, NewGoalInput, NewTaskInput, TaskRecord } from '../shared/types'
 
 /**
- * SQLite-backed task persistence. Stores the full structured task record
- * (status, assignments, dependencies, questions, answers, reports, events)
- * as JSON on a single `tasks` table. Large terminal transcripts and project
+ * SQLite-backed persistence for tasks and goals. Stores the full structured
+ * records (status, assignments, dependencies, questions, answers, reports,
+ * events) as JSON on dedicated tables. Large terminal transcripts and project
  * files stay outside the database.
  */
 let db: DatabaseSync | null = null
@@ -34,6 +34,13 @@ function open(): DatabaseSync {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS goals (
+      id TEXT PRIMARY KEY,
+      json TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
   `)
   return db
 }
@@ -42,6 +49,10 @@ function toRecord(row: {
   json: string
 }): TaskRecord {
   return JSON.parse(row.json) as TaskRecord
+}
+
+function toGoal(row: { json: string }): GoalRecord {
+  return JSON.parse(row.json) as GoalRecord
 }
 
 export function createTask(input: NewTaskInput): TaskRecord {
@@ -106,4 +117,63 @@ export function listTasks(): TaskRecord[] {
 
 export function removeTask(taskId: string): void {
   open().prepare('DELETE FROM tasks WHERE id = ?').run(taskId)
+}
+
+export function createGoal(input: NewGoalInput): GoalRecord {
+  const now = Date.now()
+  const goal: GoalRecord = {
+    id: randomUUID(),
+    title: input.title,
+    request: input.request,
+    projectPath: input.projectPath,
+    expectedOutcome: input.expectedOutcome,
+    constraints: input.constraints,
+    priority: input.priority,
+    deadline: input.deadline,
+    budget: input.budget,
+    attachments: input.attachments,
+    preferredCoworkers: input.preferredCoworkers,
+    completionRequirements: input.completionRequirements,
+    approvalMode: input.approvalMode,
+    status: 'planning',
+    taskIds: [],
+    questions: [],
+    retries: [],
+    createdAt: now,
+    updatedAt: now
+  }
+  saveGoal(goal)
+  return goal
+}
+
+export function saveGoal(goal: GoalRecord): GoalRecord {
+  const row = {
+    id: goal.id,
+    json: JSON.stringify(goal),
+    status: goal.status,
+    created_at: goal.createdAt,
+    updated_at: goal.updatedAt
+  }
+  open()
+    .prepare(
+      `INSERT INTO goals (id, json, status, created_at, updated_at)
+       VALUES (:id, :json, :status, :created_at, :updated_at)
+       ON CONFLICT(id) DO UPDATE SET
+         json = excluded.json,
+         status = excluded.status,
+         updated_at = excluded.updated_at`
+    )
+    .run(row)
+  return goal
+}
+
+export function listGoals(): GoalRecord[] {
+  const rows = open()
+    .prepare('SELECT json FROM goals ORDER BY created_at ASC')
+    .all() as { json: string }[]
+  return rows.map(toGoal)
+}
+
+export function removeGoal(goalId: string): void {
+  open().prepare('DELETE FROM goals WHERE id = ?').run(goalId)
 }

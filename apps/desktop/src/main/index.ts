@@ -10,7 +10,16 @@ import { AgentSession, SessionManager } from './session/sessionManager'
 import { saveCoworker, listCoworkers, removeCoworker } from './coworkerStore'
 import { worktreeAdd, worktreeRemove } from './gitWorktree'
 import { createTask, listTasks, removeTask, saveTask } from './taskStore'
-import type { CliInfo, CreateSessionOptions, CoworkerConfig, NewTaskInput, TaskRecord } from '../shared/types'
+import { createGoal, listGoals, removeGoal, saveGoal } from './taskStore'
+import type {
+  CliInfo,
+  CreateSessionOptions,
+  CoworkerConfig,
+  GoalRecord,
+  NewGoalInput,
+  NewTaskInput,
+  TaskRecord
+} from '../shared/types'
 
 const sessionManager = new SessionManager()
 
@@ -93,6 +102,16 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('task:remove', (_event, taskId: string) => {
     removeTask(taskId)
+  })
+
+  ipcMain.handle('goal:create', (_event, input: NewGoalInput) => createGoal(input))
+
+  ipcMain.handle('goal:save', (_event, goal: GoalRecord) => saveGoal(goal))
+
+  ipcMain.handle('goal:list', () => listGoals())
+
+  ipcMain.handle('goal:remove', (_event, goalId: string) => {
+    removeGoal(goalId)
   })
 
   ipcMain.handle('dialog:selectProject', async () => {

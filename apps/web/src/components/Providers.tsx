@@ -7,6 +7,7 @@ export function Providers(): React.JSX.Element {
       <div className="providers-row">
         {PROVIDERS.map((p) => (
           <span key={p.name} className="provider">
+            <img className="provider-icon" src={p.icon} alt={`${p.name} logo`} draggable={false} />
             <span className="provider-name">{p.name}</span>
             <span className="provider-tag">{p.tag}</span>
           </span>

@@ -12,7 +12,10 @@ import { MoonIcon, SunIcon } from './components/ThemeIcon'
 import { SettingsIcon } from './components/ChromeIcon'
 import { useOfficeStore } from './office/store'
 import { useTaskStore } from './office/taskStore'
+import { useGoalStore } from './office/goalStore'
 import { parseTaskOutput } from './office/taskEvents'
+import { parseGoalOutput } from './office/goalEvents'
+import { startGoalEngine } from './office/goalEngine'
 import { TaskBoard } from './components/TaskBoard'
 import { NotificationHost } from './components/NotificationHost'
 import type { CliInfo } from '@shared/types'
@@ -101,12 +104,18 @@ function App(): React.JSX.Element {
     const unsubscribe = window.workspace.onSessionOutput(({ sessionId, data }) => {
       useOfficeStore.getState().recordOutput(sessionId, data)
       parseTaskOutput(sessionId, data)
+      parseGoalOutput(sessionId, data)
     })
     return unsubscribe
   }, [])
 
   useEffect(() => {
     void useTaskStore.getState().hydrate()
+    void useGoalStore.getState().hydrate()
+  }, [])
+
+  useEffect(() => {
+    startGoalEngine()
   }, [])
 
   useEffect(() => {

@@ -4,7 +4,6 @@ export function Hero(): React.JSX.Element {
   return (
     <section className="hero" id="top">
       <div className="hero-badge-row">
-        <span className="chip">Featured on Product Hunt</span>
         <span className="chip chip-teal">Free &amp; open source</span>
       </div>
       <h1 className="hero-title">
@@ -41,7 +40,7 @@ export function Hero(): React.JSX.Element {
           />
           <div className="hero-chip hero-chip-1">
             <span className="hero-chip-dot" style={{ background: '#4ec8b0' }} />
-            Michael — orchestrator
+            Manager — orchestrator
           </div>
           <div className="hero-chip hero-chip-2">
             <span className="hero-chip-dot" style={{ background: '#a78bfa' }} />

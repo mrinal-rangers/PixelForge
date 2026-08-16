@@ -235,6 +235,116 @@ export interface NewTaskInput {
   requirements?: string
 }
 
+export type GoalStatus =
+  | 'planning'
+  | 'awaiting-approval'
+  | 'running'
+  | 'needs-input'
+  | 'partially-completed'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+
+export type GoalApprovalMode = 'supervised' | 'auto'
+
+export interface GoalTaskDraft {
+  id: string
+  title: string
+  instructions: string
+  /** Recommended coworker (name or agent id). Left empty for Michael to pick. */
+  assignee?: string
+  assigneeReason?: string
+  /** Draft ids (or draft titles) this task depends on. */
+  dependencies: string[]
+  priority: TaskPriority
+}
+
+export interface GoalPlan {
+  understanding: string
+  tasks: GoalTaskDraft[]
+  risks: string[]
+  completionCriteria: string
+  /** Free-form note (e.g. replan explanation). */
+  note?: string
+}
+
+export interface GoalQuestion {
+  id: number
+  ask: string
+  why: string
+  taskId?: string
+  options: string[]
+  recommendation: string
+  consequences: string
+  urgency: 'normal' | 'high'
+  answer?: string
+  answeredAt?: number | null
+  createdAt: number
+}
+
+export interface GoalRetry {
+  id: number
+  taskId: string
+  attempt: number
+  action: string
+  note: string
+  ts: number
+}
+
+export interface GoalReport {
+  summary: string
+  workers: string[]
+  tasks: string[]
+  files: string[]
+  verification: string
+  decisions: string[]
+  approvals: string[]
+  limitations: string
+  risks: string[]
+  next: string[]
+}
+
+export interface GoalRecord {
+  id: string
+  title: string
+  request: string
+  projectPath?: string
+  expectedOutcome?: string
+  constraints: string[]
+  priority: TaskPriority
+  deadline?: number
+  budget?: number
+  attachments: TaskAttachment[]
+  preferredCoworkers?: string[]
+  completionRequirements?: string
+  approvalMode: GoalApprovalMode
+  status: GoalStatus
+  plan?: GoalPlan
+  /** Child task ids on the shared task board. */
+  taskIds: string[]
+  questions: GoalQuestion[]
+  retries: GoalRetry[]
+  report?: GoalReport
+  createdAt: number
+  updatedAt: number
+  completedAt?: number
+}
+
+export interface NewGoalInput {
+  title: string
+  request: string
+  projectPath?: string
+  expectedOutcome?: string
+  constraints: string[]
+  priority: TaskPriority
+  deadline?: number
+  budget?: number
+  attachments: TaskAttachment[]
+  preferredCoworkers?: string[]
+  completionRequirements?: string
+  approvalMode: GoalApprovalMode
+}
+
 export interface WorkspaceApi {
   getAppInfo(): Promise<AppInfo>
   saveCoworker(config: CoworkerConfig): Promise<void>
@@ -246,6 +356,10 @@ export interface WorkspaceApi {
   taskSave(task: TaskRecord): Promise<TaskRecord>
   taskList(): Promise<TaskRecord[]>
   taskRemove(taskId: string): Promise<void>
+  goalCreate(input: NewGoalInput): Promise<GoalRecord>
+  goalSave(goal: GoalRecord): Promise<GoalRecord>
+  goalList(): Promise<GoalRecord[]>
+  goalRemove(goalId: string): Promise<void>
   selectProject(): Promise<string | null>
   selectFiles(): Promise<string[] | null>
   listClis(): Promise<CliInfo[]>

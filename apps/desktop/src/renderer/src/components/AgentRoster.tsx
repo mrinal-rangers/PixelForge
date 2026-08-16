@@ -5,6 +5,7 @@ import { PlusIcon } from './ChromeIcon'
 import { getAvatar } from '../office/characters'
 import { DEFAULT_COWORKER } from '../office/characters'
 import { useOfficeStore } from '../office/store'
+import { useTaskStore } from '../office/taskStore'
 import type { OfficeAgentRecord } from '../office/store'
 
 interface AgentRosterProps {
@@ -37,9 +38,22 @@ export function AgentRoster({ onAdd }: AgentRosterProps): React.JSX.Element {
   const managerId = useOfficeStore((s) => s.managerId)
   const requestFocus = useOfficeStore((s) => s.requestFocus)
   const updateAgentMeta = useOfficeStore((s) => s.updateAgentMeta)
+  const teamTasks = useTaskStore(useShallow((s) => Object.values(s.tasks)))
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editRole, setEditRole] = useState('')
+
+  const activeTitle = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const task of teamTasks) {
+      if (task.status === 'ongoing' || task.status === 'needs-input') {
+        if (task.assignedAgentId && !map.has(task.assignedAgentId)) {
+          map.set(task.assignedAgentId, task.title)
+        }
+      }
+    }
+    return map
+  }, [teamTasks])
 
   const sorted = useMemo(() => {
     const list = [...agents].sort((a, b) => a.name.localeCompare(b.name))
@@ -100,12 +114,20 @@ export function AgentRoster({ onAdd }: AgentRosterProps): React.JSX.Element {
                 style={agent.id === selectedId ? { borderColor: agent.accent ?? undefined } : undefined}
                 onClick={() => requestFocus(agent.id)}
               >
-                <MiniAvatar spec={avatar} scale={1} className="roster-avatar" />
+                                <MiniAvatar spec={avatar} scale={1} className="roster-avatar" />
                 <div className="roster-meta">
-                  <span className="roster-name">{agent.name}</span>
+                  <span className="roster-name">
+                    {agent.name}
+                    {agent.id === managerId && <span className="boss-badge roster-boss">BOSS</span>}
+                  </span>
                   <span className="roster-role">
                     {agent.role} · {projectName(agent.projectPath)}
                   </span>
+                  {activeTitle.has(agent.id) && (
+                    <span className="roster-task" title={activeTitle.get(agent.id)}>
+                      ▶ {activeTitle.get(agent.id)}
+                    </span>
+                  )}
                 </div>
                 {attention && (
                   <span className="roster-attention" title="Needs input">

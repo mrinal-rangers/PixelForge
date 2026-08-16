@@ -182,6 +182,7 @@ export class OfficeRenderer {
     if (!tex) {
       return
     }
+    const isManager = id === useOfficeStore.getState().managerId
 
     const container = new Container()
     container.position.set(slot.x, slot.y)
@@ -198,7 +199,7 @@ export class OfficeRenderer {
     sprite.cursor = 'pointer'
     container.addChild(sprite)
 
-    const label = this.buildLabel(record.name, record.role)
+    const label = this.buildLabel(record.name, record.role, isManager)
     container.addChild(label)
 
     const marker = new Graphics()
@@ -235,18 +236,26 @@ export class OfficeRenderer {
     this.agents.set(id, behavior)
   }
 
-  private buildLabel(name: string, role: string): Container {
+  private buildLabel(name: string, role: string, isManager: boolean): Container {
     const label = new Container()
     const dot = new Graphics()
     dot.rect(0, 1, 5, 5).fill('#5a5f78')
     label.addChild(dot)
+
+    if (isManager) {
+      const crown = new Graphics()
+      crown.poly([0, 10, 3, 3, 6, 8, 9, 3, 12, 10]).fill('#ffd95a')
+      crown.rect(0, 10, 12, 3).fill('#ffd95a')
+      crown.position.set(9, -8)
+      label.addChild(crown)
+    }
 
     const nameText = new Text({
       text: name,
       style: {
         fontFamily: PIXEL_FONT,
         fontSize: 9,
-        fill: '#f0e6c8',
+        fill: isManager ? '#ffd95a' : '#f0e6c8',
         stroke: { color: '#141a2e', width: 4 },
         letterSpacing: 0.5
       }
@@ -255,11 +264,11 @@ export class OfficeRenderer {
     label.addChild(nameText)
 
     const roleText = new Text({
-      text: role.toUpperCase(),
+      text: isManager ? 'BOSS' : role.toUpperCase(),
       style: {
         fontFamily: PIXEL_FONT,
         fontSize: 7,
-        fill: '#8b93ad',
+        fill: isManager ? '#ffd95a' : '#8b93ad',
         stroke: { color: '#141a2e', width: 3 }
       }
     })

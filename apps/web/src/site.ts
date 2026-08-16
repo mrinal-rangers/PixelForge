@@ -58,9 +58,9 @@ export const NAV_LINKS = [
 ] as const
 
 export const PROVIDERS = [
-  { name: 'Codex', tag: 'OpenAI' },
-  { name: 'Claude Code', tag: 'Anthropic' },
-  { name: 'OpenCode', tag: 'Open source' },
-  { name: 'Gemini CLI', tag: 'Google' },
-  { name: 'Aider', tag: 'Open source' }
+  { name: 'Codex', tag: 'OpenAI', icon: '/providers/openai.svg' },
+  { name: 'Claude Code', tag: 'Anthropic', icon: '/providers/anthropic.svg' },
+  { name: 'OpenCode', tag: 'Open source', icon: '/providers/opencode.svg' },
+  { name: 'Gemini CLI', tag: 'Google', icon: '/providers/gemini.svg' },
+  { name: 'Aider', tag: 'Open source', icon: '/providers/aider.svg' }
 ] as const

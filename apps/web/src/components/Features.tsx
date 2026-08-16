@@ -16,7 +16,7 @@ const HIGHLIGHTS = [
   },
   {
     emoji: '👔',
-    title: 'Michael, the orchestrator',
+    title: 'The manager, orchestrator',
     body: 'An agent that reads your goal, plans the work, and assigns tasks to the right coworker — each working in its own isolated worktree.'
   },
   {
