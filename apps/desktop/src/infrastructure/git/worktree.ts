@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 
-import type { WorktreeResult } from '../shared/types'
+import type { WorktreeResult } from '../../shared/types'
 
 const execFileAsync = promisify(execFile)
 

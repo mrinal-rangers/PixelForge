@@ -2,7 +2,7 @@ import { app } from 'electron'
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import type { CoworkerConfig } from '../shared/types'
+import type { CoworkerConfig } from '../../shared/types'
 
 let dir: string | null = null
 
