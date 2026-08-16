@@ -1,9 +1,11 @@
 import type { GoalRecord, GoalReport, TaskRecord } from '@shared/types'
+import { dependenciesMet, agentIsBusy } from '@shared/rules/task'
+import { rankMemories, sourceLabel } from '@shared/rules/memory'
 import { useGoalStore } from './goalStore'
-import { useTaskStore, dependenciesMet, agentIsBusy } from './taskStore'
+import { useTaskStore } from './taskStore'
 import { useOfficeStore } from './store'
 import type { OfficeAgentRecord } from './store'
-import { useMemoryStore, rankMemories, sourceLabel } from './memoryStore'
+import { useMemoryStore } from './memoryStore'
 import { expireGoalMemory } from './memoryEngine'
 
 /**

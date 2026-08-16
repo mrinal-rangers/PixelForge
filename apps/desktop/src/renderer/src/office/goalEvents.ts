@@ -3,6 +3,7 @@ import type {
   GoalTaskDraft,
   TaskPriority
 } from '@shared/types'
+import { planRequiresApproval } from '@shared/rules/goal'
 import { useGoalStore } from './goalStore'
 import { applyPlanAndRun } from './goalEngine'
 
@@ -108,45 +109,6 @@ function validateDrafts(raw: unknown): GoalTaskDraft[] {
 }
 
 /** Auto mode must still stop for consequential decisions. */
-export function planRequiresApproval(plan: GoalPlan, goalInput?: { request: string; constraints: string[] }): boolean {
-  const haystack = [
-    plan.completionCriteria,
-    ...plan.risks,
-    ...plan.tasks.flatMap((t) => [t.title, t.instructions])
-  ]
-    .join('\n')
-    .toLowerCase()
-  const flags = [
-    'delete ',
-    'drop database',
-    'drop table',
-    'rm -rf',
-    'git reset --hard',
-    'force push',
-    'production',
-    'deploy',
-    'publish',
-    'credentials',
-    'password',
-    'secret',
-    'api key',
-    'payment',
-    'charge',
-    'refund',
-    'irreversible',
-    'cannot be undone',
-    'paying',
-    'money'
-  ]
-  if (flags.some((flag) => haystack.includes(flag))) {
-    return true
-  }
-  if (goalInput && /\b(delete|remove|drop|purge)\b/i.test(goalInput.request)) {
-    return true
-  }
-  return false
-}
-
 function parseAndValidate(data: string): RawPlan | null {
   const clean = stripAnsi(data)
   const marker = new RegExp(MARKER_RE.source, 'g')

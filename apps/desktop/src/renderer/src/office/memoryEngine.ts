@@ -1,11 +1,13 @@
 import type { MemoryRecord, NewMemoryInput, TaskQuestion, TaskRecord } from '@shared/types'
 import {
-  useMemoryStore,
   tokenize,
   redactSecret,
   rankMemories,
-  memoryBriefForTask
-} from './memoryStore'
+  memoryBriefForTask,
+  findConflict,
+  makeTaskMemory
+} from '@shared/rules/memory'
+import { useMemoryStore } from './memoryStore'
 import { useGoalStore } from './goalStore'
 
 /**
@@ -15,37 +17,6 @@ import { useGoalStore } from './goalStore'
  * through proposeMemory/captureTaskMemory which redact secrets, run conflict
  * detection and set an approval state the user can review.
  */
-
-function findConflict(input: NewMemoryInput, memories: MemoryRecord[]): MemoryRecord | undefined {
-  const incoming = tokenize(`${input.title} ${input.content}`)
-  if (incoming.length === 0) {
-    return undefined
-  }
-  const candidates = memories.filter(
-    (memory) =>
-      !memory.archived &&
-      memory.approval !== 'rejected' &&
-      memory.type === input.type &&
-      (!memory.projectPath || memory.projectPath === input.projectPath)
-  )
-  let best: MemoryRecord | undefined
-  let bestOverlap = 0
-  for (const memory of candidates) {
-    const existing = tokenize(`${memory.title} ${memory.content}`)
-    let overlap = 0
-    for (const word of incoming) {
-      if (existing.includes(word)) {
-        overlap += 1
-      }
-    }
-    const ratio = overlap / Math.max(1, Math.min(incoming.length, existing.length))
-    if (ratio > 0.45 && overlap > bestOverlap) {
-      best = memory
-      bestOverlap = overlap
-    }
-  }
-  return best
-}
 
 /** Create a memory through the controlled pipeline. */
 export async function proposeMemory(input: NewMemoryInput): Promise<MemoryRecord | null> {
@@ -60,55 +31,6 @@ export async function proposeMemory(input: NewMemoryInput): Promise<MemoryRecord
     useMemoryStore.setState({ conflictNotice: { id: created.id, ts: Date.now() } })
   }
   return created
-}
-
-function makeTaskMemory(task: TaskRecord): NewMemoryInput | null {
-  const report = task.report
-  if (!report) {
-    return null
-  }
-  const lines: string[] = []
-  if (report.summary) {
-    lines.push(report.summary)
-  }
-  const parts: string[] = []
-  if (report.files.length > 0) {
-    parts.push(`Files: ${report.files.join(', ')}`)
-  }
-  if (report.commands.length > 0) {
-    parts.push(`Commands: ${report.commands.join('; ')}`)
-  }
-  if (report.tests) {
-    parts.push(`Tests: ${report.tests}`)
-  }
-  if (report.concerns) {
-    parts.push(`Concerns: ${report.concerns}`)
-  }
-  if (report.next.length > 0) {
-    parts.push(`Follow-up: ${report.next.join('; ')}`)
-  }
-  if (parts.length > 0) {
-    lines.push('', ...parts)
-  }
-  const content = lines.join('\n').trim()
-  if (!content) {
-    return null
-  }
-  const keywords = tokenize(task.title)
-  return {
-    title: `Task: ${task.title}`,
-    content,
-    type: 'task',
-    projectPath: task.projectPath,
-    relatedTaskId: task.id,
-    source: { kind: 'task-report', taskId: task.id },
-    createdBy: 'system',
-    confidence: 'medium',
-    tags: keywords.slice(0, 4),
-    visibility: 'team',
-    approval: 'auto',
-    relatedAgentId: task.assignedAgentId
-  }
 }
 
 /** Capture a concise lesson from a completed task, updating any existing one. */

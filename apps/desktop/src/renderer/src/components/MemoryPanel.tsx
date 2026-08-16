@@ -8,7 +8,8 @@ import type {
   MemoryType,
   MemoryVisibility
 } from '@shared/types'
-import { useMemoryStore, filterMemories, sourceLabel, containsSecret } from '../office/memoryStore'
+import { useMemoryStore } from '../office/memoryStore'
+import { filterMemories, sourceLabel, containsSecret } from '@shared/rules/memory'
 import { proposeMemory } from '../office/memoryEngine'
 import { useOfficeStore } from '../office/store'
 

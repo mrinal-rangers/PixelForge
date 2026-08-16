@@ -3,7 +3,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { MiniAvatar } from './MiniAvatar'
 import { getAvatar, DEFAULT_COWORKER } from '../office/characters'
 import { useOfficeStore } from '../office/store'
-import { useTaskStore, dependenciesMet, agentIsBusy } from '../office/taskStore'
+import { useTaskStore } from '../office/taskStore'
+import { dependenciesMet, agentIsBusy } from '@shared/rules/task'
 import type { CompletionReport, TaskPriority, TaskRecord, TaskStatus } from '@shared/types'
 
 interface ReportFormState {

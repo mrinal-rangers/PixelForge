@@ -5,7 +5,8 @@ import { NewTaskModal } from './NewTaskModal'
 import { TaskDetails } from './TaskDetails'
 import { getAvatar, DEFAULT_COWORKER } from '../office/characters'
 import { useOfficeStore } from '../office/store'
-import { useTaskStore, dependenciesMet } from '../office/taskStore'
+import { useTaskStore } from '../office/taskStore'
+import { dependenciesMet } from '@shared/rules/task'
 import type { TaskPriority, TaskRecord, TaskStatus } from '@shared/types'
 
 interface TaskBoardProps {

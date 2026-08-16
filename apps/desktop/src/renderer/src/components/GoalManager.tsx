@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { GoalPlan, GoalRecord, GoalTaskDraft, TaskPriority, TaskRecord } from '@shared/types'
 import { useGoalStore } from '../office/goalStore'
-import { useTaskStore, agentIsBusy } from '../office/taskStore'
+import { useTaskStore } from '../office/taskStore'
+import { agentIsBusy } from '@shared/rules/task'
 import { useOfficeStore } from '../office/store'
 import {
   applyPlanAndRun,
