@@ -17,6 +17,7 @@ function subscribe<T>(channel: string, callback: (payload: T) => void): () => vo
 }
 
 const api: WorkspaceApi = {
+  getAppInfo: () => ipcRenderer.invoke('app:info'),
   selectProject: () => ipcRenderer.invoke('dialog:selectProject'),
   selectFiles: () => ipcRenderer.invoke('dialog:selectFiles'),
   listClis: () => ipcRenderer.invoke('cli:list'),

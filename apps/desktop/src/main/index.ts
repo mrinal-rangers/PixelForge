@@ -56,6 +56,14 @@ function createWindow(): void {
 }
 
 function registerIpcHandlers(): void {
+  ipcMain.handle('app:info', () => {
+    const base = is.dev ? process.cwd() : process.resourcesPath
+    return {
+      version: app.getVersion(),
+      floorPath: join(base, 'resources', 'pixel-office')
+    }
+  })
+
   ipcMain.handle('dialog:selectProject', async () => {
     const result = await dialog.showOpenDialog({
       title: 'Choose a project folder',

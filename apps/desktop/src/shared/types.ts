@@ -90,7 +90,13 @@ export interface SessionStatusPayload {
   session: SessionInfo
 }
 
+export interface AppInfo {
+  version: string
+  floorPath: string
+}
+
 export interface WorkspaceApi {
+  getAppInfo(): Promise<AppInfo>
   selectProject(): Promise<string | null>
   selectFiles(): Promise<string[] | null>
   listClis(): Promise<CliInfo[]>

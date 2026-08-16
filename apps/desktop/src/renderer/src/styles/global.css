@@ -1064,6 +1064,54 @@ button {
   cursor: not-allowed;
 }
 
+.settings-card {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 3px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 8px 0 var(--shadow);
+  overflow: hidden;
+}
+
+.settings-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 2px dashed var(--border);
+}
+
+.settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-row-label {
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  min-width: 110px;
+  padding-top: 3px;
+}
+
+.settings-row-value {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-all;
+}
+
 /* Overlays */
 
 .wizard-overlay {
@@ -1381,6 +1429,7 @@ button {
   flex: 1;
   min-height: 0;
   display: flex;
+  flex-direction: column;
   position: relative;
 }
 

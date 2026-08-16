@@ -4,13 +4,17 @@ import { useShallow } from 'zustand/react/shallow'
 import { OfficeCanvas } from './components/OfficeCanvas'
 import { CommandCenter } from './components/CommandCenter'
 import { AddAgentWizard } from './components/AddAgentWizard'
+import { AgentRoster } from './components/AgentRoster'
+import { SetupWizard } from './components/SetupWizard'
+import { SettingsModal } from './components/SettingsModal'
 import { GemLogo } from './components/GemLogo'
 import { MoonIcon, SunIcon } from './components/ThemeIcon'
-import { FullscreenIcon, SettingsIcon, PlusIcon } from './components/ChromeIcon'
+import { SettingsIcon } from './components/ChromeIcon'
 import { useOfficeStore } from './office/store'
 import type { CliInfo } from '@shared/types'
 
 const VERSION = 'v0.4.3'
+const SETUP_DISMISS_KEY = 'pixelforge-setup-dismissed'
 
 type Theme = 'dark' | 'light'
 const THEME_KEY = 'pixelforge-theme'
@@ -19,6 +23,11 @@ function App(): React.JSX.Element {
   const [clis, setClis] = useState<CliInfo[]>([])
   const [wizardOpen, setWizardOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [setupDismissed, setSetupDismissed] = useState<boolean>(
+    () => localStorage.getItem(SETUP_DISMISS_KEY) === '1'
+  )
+  const [sessionsLoaded, setSessionsLoaded] = useState(false)
+  const [setupError, setSetupError] = useState<string | null>(null)
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem(THEME_KEY)
     return stored === 'dark' ? 'dark' : 'light'
@@ -65,6 +74,9 @@ function App(): React.JSX.Element {
       .catch(() => {
         // sessions list is best-effort on startup
       })
+      .finally(() => {
+        setSessionsLoaded(true)
+      })
   }, [])
 
   const toggleTheme = useCallback(() => {
@@ -99,16 +111,32 @@ function App(): React.JSX.Element {
     [commandWidth]
   )
 
-  const resetWorkspace = useCallback(() => {
-    const { agents: current, removeAgent } = useOfficeStore.getState()
-    for (const agent of Object.values(current)) {
-      if (agent.cliId) {
-        window.workspace.stopSession(agent.id)
+  const startManager = useCallback(
+    async (path: string, cliId: string) => {
+      setSetupError(null)
+      try {
+        await window.workspace.createSession({
+          projectPath: path,
+          cliId,
+          name: 'Manager',
+          role: 'Manager',
+          autoMode: true,
+          cols: terminalSizeRef.current.cols,
+          rows: terminalSizeRef.current.rows
+        })
+      } catch (err) {
+        setSetupError(err instanceof Error ? err.message : String(err))
       }
-      removeAgent(agent.id)
-    }
-    setSettingsOpen(false)
+    },
+    []
+  )
+
+  const skipSetup = useCallback(() => {
+    localStorage.setItem(SETUP_DISMISS_KEY, '1')
+    setSetupDismissed(true)
   }, [])
+
+  const showSetup = sessionsLoaded && agents.length === 0 && !setupDismissed
 
   return (
     <div className="app">
@@ -120,16 +148,6 @@ function App(): React.JSX.Element {
         </div>
         <div className="header-right">
           <button
-            className="auto-pill"
-            onClick={() => setWizardOpen(true)}
-            title="Add a coworker"
-          >
-            <span className="theme-icon" aria-hidden="true">
-              <PlusIcon className="chrome-svg" />
-            </span>
-            ADD
-          </button>
-          <button
             className="theme-toggle"
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -140,65 +158,58 @@ function App(): React.JSX.Element {
           </button>
           <button
             className="theme-toggle"
-            onClick={() => window.workspace.toggleFullscreen()}
-            title="Toggle fullscreen"
+            onClick={() => setSettingsOpen(true)}
+            title="General settings"
           >
             <span className="theme-icon" aria-hidden="true">
-              <FullscreenIcon className="chrome-svg" />
+              <SettingsIcon className="chrome-svg" />
             </span>
           </button>
-          <div className="settings-wrap">
-            <button
-              className="theme-toggle"
-              onClick={() => setSettingsOpen((open) => !open)}
-              title="Settings"
-            >
-              <span className="theme-icon" aria-hidden="true">
-                <SettingsIcon className="chrome-svg" />
-              </span>
-            </button>
-            {settingsOpen && (
-              <div className="settings-popover">
-                <button
-                  className="settings-item settings-danger"
-                  onClick={resetWorkspace}
-                  disabled={agents.length === 0}
-                >
-                  <span>Reset workspace</span>
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </header>
 
       <main className="workspace-main">
-        <div className="main-left">
-          <section className="office-panel">
-            <OfficeCanvas />
-          </section>
-        </div>
-        <div className="command-resizer" onPointerDown={startResize} title="Drag to resize" />
-        <section className="command-panel" style={{ width: commandWidth }}>
-          {selectedId ? (
-            <CommandCenter key={selectedId} agentId={selectedId} clis={clis} terminalSizeRef={terminalSizeRef} />
-          ) : (
-            <div className="command-center">
-              <div className="cc-empty">
-                <span className="cc-empty-glyph">+</span>
-                <p>No coworker selected.</p>
-                <button className="btn btn-primary" onClick={() => setWizardOpen(true)}>
-                  Add Agent
-                </button>
-              </div>
+        {showSetup ? (
+          <SetupWizard
+            clis={clis}
+            error={setupError}
+            onSelectProject={async () => window.workspace.selectProject()}
+            onStart={startManager}
+            onSkip={skipSetup}
+          />
+        ) : (
+          <>
+            <div className="main-left">
+              <section className="office-panel">
+                <OfficeCanvas />
+              </section>
+              <AgentRoster onAdd={() => setWizardOpen(true)} />
             </div>
-          )}
-        </section>
+            <div className="command-resizer" onPointerDown={startResize} title="Drag to resize" />
+            <section className="command-panel" style={{ width: commandWidth }}>
+              {selectedId ? (
+                <CommandCenter key={selectedId} agentId={selectedId} clis={clis} terminalSizeRef={terminalSizeRef} />
+              ) : (
+                <div className="command-center">
+                  <div className="cc-empty">
+                    <span className="cc-empty-glyph">+</span>
+                    <p>No coworker selected.</p>
+                    <button className="btn btn-primary" onClick={() => setWizardOpen(true)}>
+                      Add Agent
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          </>
+        )}
       </main>
 
       {wizardOpen && (
         <AddAgentWizard clis={clis} terminalSize={terminalSizeRef.current} onClose={() => setWizardOpen(false)} />
       )}
+
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </div>
   )
 }
