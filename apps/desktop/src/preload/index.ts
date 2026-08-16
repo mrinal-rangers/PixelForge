@@ -18,6 +18,7 @@ function subscribe<T>(channel: string, callback: (payload: T) => void): () => vo
 
 const api: WorkspaceApi = {
   selectProject: () => ipcRenderer.invoke('dialog:selectProject'),
+  selectFiles: () => ipcRenderer.invoke('dialog:selectFiles'),
   listClis: () => ipcRenderer.invoke('cli:list'),
   listCliDefs: () => ipcRenderer.invoke('cli:defs'),
   detectCli: (cliId) => ipcRenderer.invoke('cli:detect', cliId),
@@ -30,6 +31,9 @@ const api: WorkspaceApi = {
   restartSession: (sessionId, cols, rows) =>
     ipcRenderer.invoke('session:restart', sessionId, cols, rows),
   listSessions: () => ipcRenderer.invoke('session:list'),
+  toggleFullscreen: () => ipcRenderer.invoke('window:toggleFullscreen'),
+  openInEditor: (projectPath) => ipcRenderer.invoke('ide:open', projectPath),
+  readConfig: (filePath) => ipcRenderer.invoke('config:read', filePath),
   onSessionOutput: (cb) => subscribe<SessionOutputPayload>('session:output', cb),
   onSessionStatus: (cb) => subscribe<SessionStatusPayload>('session:status', cb),
   onCliInstallOutput: (cb) => subscribe<CliInstallOutputPayload>('cli:install-output', cb),

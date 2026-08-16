@@ -34,26 +34,56 @@ export interface CliInstallStatusPayload {
   exitCode?: number
 }
 
-export interface SessionInfo {
+/** Display/profile fields that turn a raw CLI session into a named coworker. */
+export interface AgentProfileFields {
+  name: string
+  role: string
+  description?: string
+  goal?: string
+  avatarId?: string
+  accent?: string
+  autoMode?: boolean
+  resumeSessionId?: string
+}
+
+export interface SessionInfo extends AgentProfileFields {
   id: string
   status: SessionStatus
   projectPath: string
   cli: CliInfo
+  model?: string
+  provider?: string
   startedAt?: number
   exitCode?: number | null
   error?: string | null
 }
 
-export interface CreateSessionOptions {
+export interface CreateSessionOptions extends AgentProfileFields {
   projectPath: string
   cliId: string
   cols?: number
   rows?: number
+  /** Full command line override. When set, this exact command is spawned instead
+   *  of the CLI's default command (used by the Add Agent engine step). */
+  command?: string
 }
 
 export interface SessionOutputPayload {
   sessionId: string
   data: string
+}
+
+/** Shape of a JSON config file imported in the Add Agent engine step. */
+export interface AgentConfigFile extends AgentProfileFields {
+  command?: string
+  provider?: string
+  model?: string
+}
+
+export interface ReadConfigResult {
+  ok: boolean
+  error?: string
+  config?: AgentConfigFile
 }
 
 export interface SessionStatusPayload {
@@ -62,6 +92,7 @@ export interface SessionStatusPayload {
 
 export interface WorkspaceApi {
   selectProject(): Promise<string | null>
+  selectFiles(): Promise<string[] | null>
   listClis(): Promise<CliInfo[]>
   listCliDefs(): Promise<CliInfo[]>
   detectCli(cliId: string): Promise<CliInfo>
@@ -72,6 +103,9 @@ export interface WorkspaceApi {
   stopSession(sessionId: string): Promise<void>
   restartSession(sessionId: string, cols?: number, rows?: number): Promise<void>
   listSessions(): Promise<SessionInfo[]>
+  toggleFullscreen(): void
+  openInEditor(projectPath: string): Promise<boolean>
+  readConfig(filePath: string): Promise<ReadConfigResult>
   onSessionOutput(cb: (payload: SessionOutputPayload) => void): () => void
   onSessionStatus(cb: (payload: SessionStatusPayload) => void): () => void
   onCliInstallOutput(cb: (payload: CliInstallOutputPayload) => void): () => void

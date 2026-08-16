@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
+import { useOfficeStore } from '../office/store'
 
 interface TerminalViewProps {
   sessionId: string
@@ -58,11 +59,23 @@ export function TerminalView({ sessionId, onResize }: TerminalViewProps): React.
 
     const disposeInput = term.onData((data) => {
       window.workspace.sendInput(sessionId, data)
+      useOfficeStore.getState().recordInput(sessionId)
     })
 
     const unsubscribeOutput = window.workspace.onSessionOutput(({ sessionId: id, data }) => {
       if (id === sessionId) {
         term.write(data)
+        useOfficeStore.getState().recordOutput(sessionId, data)
+      }
+    })
+
+    const unsubscribeFocus = useOfficeStore.subscribe((state, prev) => {
+      if (
+        state.focusRequest &&
+        state.focusRequest.sessionId === sessionId &&
+        state.focusRequest.nonce !== prev.focusRequest?.nonce
+      ) {
+        term.focus()
       }
     })
 
@@ -105,6 +118,7 @@ export function TerminalView({ sessionId, onResize }: TerminalViewProps): React.
       disposeInput.dispose()
       unsubscribeOutput()
       unsubscribeStatus()
+      unsubscribeFocus()
       term.dispose()
       terminalRef.current = null
       fitRef.current = null

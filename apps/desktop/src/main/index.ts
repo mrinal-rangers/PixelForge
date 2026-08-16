@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, dialog, ipcMain, nativeImage } from 'electron'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 
@@ -64,6 +65,54 @@ function registerIpcHandlers(): void {
       return null
     }
     return result.filePaths[0]
+  })
+
+  ipcMain.handle('dialog:selectFiles', async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Choose files to attach',
+      properties: ['openFile', 'multiSelections']
+    })
+    if (result.canceled || result.filePaths.length === 0) {
+      return null
+    }
+    return result.filePaths
+  })
+
+  ipcMain.handle('window:toggleFullscreen', () => {
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+    win?.setFullScreen(!win.isFullScreen())
+  })
+
+  ipcMain.handle('ide:open', (_event, projectPath: string) => {
+    const candidates = ['code', 'cursor', 'codium']
+    for (const editor of candidates) {
+      const result = spawnSync(editor, [projectPath], { stdio: 'ignore' })
+      if (result.status === 0 || result.error === undefined) {
+        return true
+      }
+      const errno = result.error as NodeJS.ErrnoException
+      if (errno && errno.code !== 'ENOENT') {
+        return false
+      }
+    }
+    if (process.platform === 'darwin') {
+      const result = spawnSync('open', [projectPath], { stdio: 'ignore' })
+      return result.status === 0
+    }
+    return false
+  })
+
+  ipcMain.handle('config:read', async (_event, filePath: string) => {
+    try {
+      const raw = await readFile(filePath, 'utf8')
+      const parsed = JSON.parse(raw) as unknown
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return { ok: false, error: 'Config file must contain a JSON object' }
+      }
+      return { ok: true, config: parsed }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
   })
 
   ipcMain.handle('cli:list', async () => {

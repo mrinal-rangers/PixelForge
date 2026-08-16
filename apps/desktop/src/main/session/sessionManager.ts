@@ -14,6 +14,15 @@ export class AgentSession {
   readonly id: string
   readonly projectPath: string
   readonly cli: CliInfo
+  readonly commandOverride?: string
+  readonly name: string
+  readonly role: string
+  readonly description?: string
+  readonly goal?: string
+  readonly avatarId?: string
+  readonly accent?: string
+  readonly autoMode?: boolean
+  readonly resumeSessionId?: string
 
   private emitter = new EventEmitter()
   private proc?: pty.IPty
@@ -27,6 +36,15 @@ export class AgentSession {
     this.id = randomUUID()
     this.projectPath = options.projectPath
     this.cli = cli
+    this.commandOverride = options.command
+    this.name = options.name ?? cli.name
+    this.role = options.role ?? 'Developer'
+    this.description = options.description
+    this.goal = options.goal
+    this.avatarId = options.avatarId
+    this.accent = options.accent
+    this.autoMode = options.autoMode
+    this.resumeSessionId = options.resumeSessionId
   }
 
   get status(): SessionStatus {
@@ -39,6 +57,14 @@ export class AgentSession {
       status: this._status,
       projectPath: this.projectPath,
       cli: this.cli,
+      name: this.name,
+      role: this.role,
+      description: this.description,
+      goal: this.goal,
+      avatarId: this.avatarId,
+      accent: this.accent,
+      autoMode: this.autoMode,
+      resumeSessionId: this.resumeSessionId,
       startedAt: this._startedAt,
       exitCode: this._exitCode,
       error: this._error
@@ -61,7 +87,7 @@ export class AgentSession {
     if (this.proc) {
       return
     }
-    const command = this.cli.path ?? this.cli.command
+    const command = this.commandOverride ?? this.cli.path ?? this.cli.command
     const { shell, shellArgs } = buildShellCommand(command)
 
     this.stopRequested = false

@@ -1,34 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
-import { SetupWizard } from './components/SetupWizard'
-import { TerminalView } from './components/TerminalView'
+import { OfficeCanvas } from './components/OfficeCanvas'
+import { AgentRoster } from './components/AgentRoster'
+import { CommandCenter } from './components/CommandCenter'
+import { AddAgentWizard } from './components/AddAgentWizard'
+import { MemoryPanel } from './components/MemoryPanel'
 import { GemLogo } from './components/GemLogo'
 import { MoonIcon, SunIcon } from './components/ThemeIcon'
-import type { CliInfo, SessionInfo, SessionStatus } from '@shared/types'
+import { FullscreenIcon, SettingsIcon } from './components/ChromeIcon'
+import { useOfficeStore } from './office/store'
+import type { CliInfo } from '@shared/types'
 
-const STATUS_LABELS: Record<SessionStatus, string> = {
-  idle: 'Idle',
-  starting: 'Starting',
-  running: 'Running',
-  stopped: 'Stopped',
-  completed: 'Completed',
-  error: 'Error'
-}
+const VERSION = 'v0.4.3'
 
 type Theme = 'dark' | 'light'
 const THEME_KEY = 'pixelforge-theme'
 
 function App(): React.JSX.Element {
-  const [projectPath, setProjectPath] = useState<string | null>(null)
   const [clis, setClis] = useState<CliInfo[]>([])
-  const [selectedCliId, setSelectedCliId] = useState<string | null>(null)
-  const [session, setSession] = useState<SessionInfo | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [memoryOpen, setMemoryOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem(THEME_KEY)
     return stored === 'dark' ? 'dark' : 'light'
   })
   const terminalSizeRef = useRef<{ cols: number; rows: number }>({ cols: 80, rows: 24 })
+  const [commandWidth, setCommandWidth] = useState<number>(() => {
+    const stored = localStorage.getItem('pixelforge-command-width')
+    const parsed = stored ? parseInt(stored, 10) : 460
+    return Number.isFinite(parsed) && parsed >= 340 ? parsed : 460
+  })
+  const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
+
+  const autoMode = useOfficeStore((s) => s.autoMode)
+  const toggleAutoMode = useOfficeStore((s) => s.toggleAutoMode)
+  const agents = useOfficeStore(useShallow((s) => Object.values(s.agents)))
+  const selectedId = useOfficeStore((s) => s.selectedId)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -44,73 +53,67 @@ function App(): React.JSX.Element {
   }, [refreshClis])
 
   useEffect(() => {
-    const unsubscribe = window.workspace.onSessionStatus(({ session: info }) => {
-      setSession(info)
+    const unsubscribe = window.workspace.onSessionStatus(({ session }) => {
+      useOfficeStore.getState().upsertAgent(session)
     })
     return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    window.workspace
+      .listSessions()
+      .then((sessions) => {
+        for (const session of sessions) {
+          useOfficeStore.getState().upsertAgent(session)
+        }
+      })
+      .catch(() => {
+        // sessions list is best-effort on startup
+      })
   }, [])
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
   }, [])
 
-  const selectProject = useCallback(async () => {
-    const path = await window.workspace.selectProject()
-    if (path) {
-      setProjectPath(path)
-      setError(null)
-    }
-  }, [])
+  useEffect(() => {
+    localStorage.setItem('pixelforge-command-width', String(commandWidth))
+  }, [commandWidth])
 
-  const startSession = useCallback(
-    async (path: string) => {
-      if (!path || !selectedCliId) {
-        return
+  const startResize = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault()
+      resizeRef.current = { startX: e.clientX, startWidth: commandWidth }
+      const onMove = (ev: PointerEvent): void => {
+        const drag = resizeRef.current
+        if (!drag) {
+          return
+        }
+        const delta = drag.startX - ev.clientX
+        const max = Math.max(340, window.innerWidth - 420)
+        setCommandWidth(Math.max(340, Math.min(drag.startWidth + delta, max)))
       }
-      setError(null)
-      try {
-        const { sessionId } = await window.workspace.createSession({
-          projectPath: path,
-          cliId: selectedCliId,
-          cols: terminalSizeRef.current.cols,
-          rows: terminalSizeRef.current.rows
-        })
-        setSession({
-          id: sessionId,
-          status: 'starting',
-          projectPath: path,
-          cli: clis.find((c) => c.id === selectedCliId)!
-        })
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
+      const onUp = (): void => {
+        resizeRef.current = null
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
       }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
     },
-    [selectedCliId, clis]
+    [commandWidth]
   )
 
-  const stopSession = useCallback(() => {
-    if (session) {
-      window.workspace.stopSession(session.id)
+  const resetWorkspace = useCallback(() => {
+    const { agents: current, removeAgent } = useOfficeStore.getState()
+    for (const agent of Object.values(current)) {
+      if (agent.cliId) {
+        window.workspace.stopSession(agent.id)
+      }
+      removeAgent(agent.id)
     }
-  }, [session])
-
-  const restartSession = useCallback(() => {
-    if (session) {
-      window.workspace.restartSession(
-        session.id,
-        terminalSizeRef.current.cols,
-        terminalSizeRef.current.rows
-      )
-    }
-  }, [session])
-
-  const closeSession = useCallback(() => {
-    if (session) {
-      window.workspace.stopSession(session.id)
-    }
-    setSession(null)
-    setError(null)
-  }, [session])
+    setSettingsOpen(false)
+  }, [])
 
   return (
     <div className="app">
@@ -118,20 +121,17 @@ function App(): React.JSX.Element {
         <div className="brand">
           <GemLogo className="brand-logo" />
           <h1>PIXELFORGE</h1>
-          <span className="header-version">v0.1.0</span>
+          <span className="header-version">{VERSION}</span>
         </div>
         <div className="header-right">
-          {session && (
-            <div className="session-meta">
-              <span className={`status-badge status-${session.status}`}>
-                {STATUS_LABELS[session.status]}
-              </span>
-              <span className="meta-item" title={session.projectPath}>
-                {basename(session.projectPath)}
-              </span>
-              <span className="meta-item">{session.cli.name}</span>
-            </div>
-          )}
+          <button
+            className={`auto-pill ${autoMode ? 'on' : ''}`}
+            onClick={toggleAutoMode}
+            title="Toggle auto mode"
+          >
+            <span className="auto-pill-dot" />
+            AUTO MODE {autoMode ? 'ON' : 'OFF'}
+          </button>
           <button
             className="theme-toggle"
             onClick={toggleTheme}
@@ -141,67 +141,86 @@ function App(): React.JSX.Element {
               {theme === 'dark' ? <MoonIcon /> : <SunIcon />}
             </span>
           </button>
+          <button
+            className="theme-toggle"
+            onClick={() => window.workspace.toggleFullscreen()}
+            title="Toggle fullscreen"
+          >
+            <span className="theme-icon" aria-hidden="true">
+              <FullscreenIcon className="chrome-svg" />
+            </span>
+          </button>
+          <div className="settings-wrap">
+            <button
+              className="theme-toggle"
+              onClick={() => setSettingsOpen((open) => !open)}
+              title="Settings"
+            >
+              <span className="theme-icon" aria-hidden="true">
+                <SettingsIcon className="chrome-svg" />
+              </span>
+            </button>
+            {settingsOpen && (
+              <div className="settings-popover">
+                <button className="settings-item" onClick={toggleAutoMode}>
+                  <span>Auto mode</span>
+                  <span className={autoMode ? 'setting-on' : 'setting-off'}>
+                    {autoMode ? 'ON' : 'OFF'}
+                  </span>
+                </button>
+                <button className="settings-item" onClick={() => setMemoryOpen(true)}>
+                  <span>Shared memory</span>
+                  <span className="setting-link">open</span>
+                </button>
+                <button
+                  className="settings-item settings-danger"
+                  onClick={resetWorkspace}
+                  disabled={agents.length === 0}
+                >
+                  <span>Reset workspace</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      <main className="app-main">
-        {!session ? (
-          <SetupWizard
-            projectPath={projectPath}
-            clis={clis}
-            selectedCliId={selectedCliId ?? ''}
-            error={error}
-            onSelectProject={selectProject}
-            onSelectCli={setSelectedCliId}
-            onStart={startSession}
-          />
-        ) : (
-          <div className="session-view">
-            <div className="terminal-frame">
-              <div className="terminal-screen">
-                <TerminalView
-                  sessionId={session.id}
-                  onResize={(cols, rows) => {
-                    terminalSizeRef.current = { cols, rows }
-                  }}
-                />
-              </div>
-            </div>
-            <div className="session-bar">
-              <div className="session-bar-info">
-                <span>STATUS: {STATUS_LABELS[session.status]}</span>
-                {session.exitCode !== null && session.exitCode !== undefined && (
-                  <span>EXIT: {session.exitCode}</span>
-                )}
-                {session.error && <span className="session-error">{session.error}</span>}
-              </div>
-              <div className="session-bar-actions">
-                {(session.status === 'running' || session.status === 'starting') && (
-                  <button className="btn" onClick={stopSession}>
-                    Stop
-                  </button>
-                )}
-                {(session.status === 'stopped' ||
-                  session.status === 'completed' ||
-                  session.status === 'error') && (
-                  <button className="btn" onClick={restartSession}>
-                    Restart
-                  </button>
-                )}
-                <button className="btn btn-ghost" onClick={closeSession}>
-                  New Session
+      <main className="workspace-main">
+        <div className="main-left">
+          <section className="office-panel">
+            <OfficeCanvas />
+          </section>
+          <AgentRoster onAdd={() => setWizardOpen(true)} />
+        </div>
+        <div className="command-resizer" onPointerDown={startResize} title="Drag to resize" />
+        <section className="command-panel" style={{ width: commandWidth }}>
+          {selectedId ? (
+            <CommandCenter
+              agentId={selectedId}
+              clis={clis}
+              terminalSizeRef={terminalSizeRef}
+              onOpenMemory={() => setMemoryOpen(true)}
+            />
+          ) : (
+            <div className="command-center">
+              <div className="cc-empty">
+                <span className="cc-empty-glyph">+</span>
+                <p>No coworker selected.</p>
+                <button className="btn btn-primary" onClick={() => setWizardOpen(true)}>
+                  Add Agent
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </section>
       </main>
+
+      {wizardOpen && (
+        <AddAgentWizard clis={clis} terminalSize={terminalSizeRef.current} onClose={() => setWizardOpen(false)} />
+      )}
+      {memoryOpen && <MemoryPanel onClose={() => setMemoryOpen(false)} />}
     </div>
   )
-}
-
-function basename(path: string): string {
-  return path.split(/[/\\]/).filter(Boolean).pop() ?? path
 }
 
 export default App
