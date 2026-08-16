@@ -95,8 +95,47 @@ export interface AppInfo {
   floorPath: string
 }
 
+/** Persisted coworker configuration. Survives an application restart. */
+export interface CoworkerConfig {
+  id: string
+  name: string
+  role: string
+  description?: string
+  goal?: string
+  avatarId?: string
+  accent?: string
+  projectPath?: string
+  cliId?: string
+  provider?: string
+  model?: string
+  autoMode?: boolean
+  /** Reasoning effort chosen in the engine step. */
+  reasoning?: string
+  /** Briefing template applied in the final step. */
+  template?: string
+  /** Git worktree isolation details (base repo + isolated checkout). */
+  worktree?: { base: string; branch: string; path: string }
+  /** Desk slot index assigned on the office floor. */
+  desk?: number
+  startedAt?: number
+  resumeSessionId?: string
+  createdAt: number
+}
+
+export interface WorktreeResult {
+  ok: boolean
+  path?: string
+  branch?: string
+  error?: string
+}
+
 export interface WorkspaceApi {
   getAppInfo(): Promise<AppInfo>
+  saveCoworker(config: CoworkerConfig): Promise<void>
+  listCoworkers(): Promise<CoworkerConfig[]>
+  removeCoworker(id: string): Promise<void>
+  worktreeAdd(basePath: string, name: string): Promise<WorktreeResult>
+  worktreeRemove(basePath: string, worktreePath: string): Promise<{ ok: boolean; error?: string }>
   selectProject(): Promise<string | null>
   selectFiles(): Promise<string[] | null>
   listClis(): Promise<CliInfo[]>

@@ -20,10 +20,22 @@ const FLOOR_W = 1024
 const FLOOR_H = 896
 const WORK_IDLE_MS = 2800
 const ATTENTION_MS = 1400
+const WALK_SPEED = 3.2
 
 const PIXEL_FONT = 'PressStart, monospace'
 
 const LOOKS: string[] = ['red', 'amber', 'green', 'cyan', 'white']
+
+function lookFor(avatarId: string | undefined, index: number): string {
+  if (!avatarId) {
+    return LOOKS[index % LOOKS.length]
+  }
+  let hash = 0
+  for (let i = 0; i < avatarId.length; i++) {
+    hash = (hash * 31 + avatarId.charCodeAt(i)) >>> 0
+  }
+  return LOOKS[hash % LOOKS.length]
+}
 
 /**
  * Agent anchor slots on the 1024x896 office floor (4x of the 256x224 scene).
@@ -56,7 +68,11 @@ interface AgentBehavior {
   marker: Graphics
   look: string
   visual: VisualState
+  prevStatus: string
   animTime: number
+  homeX: number
+  homeY: number
+  entering: boolean
 }
 
 export class OfficeRenderer {
@@ -156,8 +172,8 @@ export class OfficeRenderer {
   }
 
   private spawnAgent(id: string, record: OfficeAgentRecord, index: number): void {
-    const slot = SLOTS[Math.min(index, SLOTS.length - 1)]
-    const look = LOOKS[index % LOOKS.length]
+    const slot = SLOTS[Math.min(record.desk ?? index, SLOTS.length - 1)]
+    const look = lookFor(record.avatarId, index)
     const tex = this.textures.get(look)
     if (!tex) {
       return
@@ -194,7 +210,15 @@ export class OfficeRenderer {
       marker,
       look,
       visual: 'idle',
-      animTime: 0
+      prevStatus: record.status,
+      animTime: 0,
+      homeX: slot.x,
+      homeY: slot.y,
+      entering: false
+    }
+    if (record.status === 'starting') {
+      behavior.entering = true
+      container.position.set(slot.x, -40)
     }
     this.wireAgentTap(behavior)
     this.sceneRoot.addChild(behavior.container)
@@ -314,7 +338,9 @@ export class OfficeRenderer {
   private updateVisual(behavior: AgentBehavior, now: number, record?: OfficeAgentRecord): void {
     const status = record?.status ?? 'stopped'
     let visual: VisualState = 'offline'
-    if (status === 'starting' || status === 'running') {
+    if (record && record.cliId === '') {
+      visual = 'offline'
+    } else if (status === 'starting' || status === 'running') {
       const last = record?.lastActivityAt ?? 0
       const quiet = last > 0 ? now - last : 0
       if (record?.promptPending && quiet > ATTENTION_MS) {
@@ -328,17 +354,44 @@ export class OfficeRenderer {
       visual = 'error'
     }
 
+    if (status === 'starting' && behavior.prevStatus !== 'starting') {
+      behavior.entering = true
+      behavior.container.position.set(behavior.homeX, -40)
+    }
+    behavior.prevStatus = status
+
     if (visual !== behavior.visual) {
       behavior.visual = visual
       this.setBubble(behavior, visual === 'attention' ? 'attention' : visual === 'error' ? 'error' : null)
     }
 
-    if (visual === 'working' || visual === 'idle') {
+    if (behavior.entering) {
+      const dx = behavior.homeX - behavior.container.position.x
+      const dy = behavior.homeY - behavior.container.position.y
+      const dist = Math.hypot(dx, dy)
+      if (dist < WALK_SPEED) {
+        behavior.entering = false
+        behavior.container.position.set(behavior.homeX, behavior.homeY)
+      } else {
+        behavior.container.position.x += (dx / dist) * WALK_SPEED
+        behavior.container.position.y += (dy / dist) * WALK_SPEED
+      }
+      const bob = Math.floor(now / 120) % 2 === 0 ? -3 : 0
+      behavior.sprite.y = bob
+    } else if (visual === 'working' || visual === 'idle') {
       behavior.animTime += 1
-      behavior.sprite.y = (behavior.animTime % 20 < 10 ? 0 : -2) + (visual === 'working' ? -2 : 0)
+      const period = visual === 'working' ? 10 : 20
+      const amp = visual === 'working' ? 3 : 2
+      behavior.sprite.y = (behavior.animTime % period < period / 2 ? 0 : -amp) + (visual === 'working' ? -2 : 0)
     } else {
       behavior.sprite.y = 0
     }
+
+    const offline = visual === 'offline'
+    behavior.sprite.alpha = offline ? 0.35 : 1
+    behavior.label.alpha = offline ? 0.5 : 1
+    behavior.shadow.alpha = offline ? 0.4 : 1
+    behavior.container.zIndex = Math.round(behavior.container.position.y)
   }
 
   private wireAgentTap(behavior: AgentBehavior): void {

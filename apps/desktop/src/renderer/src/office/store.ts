@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { SessionInfo, SessionStatus } from '@shared/types'
+import type { CoworkerConfig, SessionInfo, SessionStatus } from '@shared/types'
 
 export interface OfficeAgentRecord {
   id: string
@@ -20,6 +20,12 @@ export interface OfficeAgentRecord {
   provider?: string
   model?: string
   autoMode?: boolean
+  reasoning?: string
+  template?: string
+  desk?: number
+  resumeSessionId?: string
+  worktree?: CoworkerConfig['worktree']
+  createdAt?: number
 }
 
 export interface AgentTask {
@@ -52,6 +58,11 @@ export interface HireProfile {
   avatarId?: string
   accent?: string
   autoMode?: boolean
+  reasoning?: string
+  template?: string
+  desk?: number
+  resumeSessionId?: string
+  worktree?: CoworkerConfig['worktree']
 }
 
 interface OfficeState {
@@ -67,6 +78,7 @@ interface OfficeState {
   conversations: Record<string, ConversationItem[]>
   upsertAgent: (session: SessionInfo) => void
   hireAgent: (profile: HireProfile) => string
+  hydrateCoworkers: (configs: CoworkerConfig[]) => void
   setAgentAutoMode: (sessionId: string, value: boolean) => void
   updateAgentMeta: (
     sessionId: string,
@@ -111,6 +123,51 @@ function loadProjects(): string[] {
   }
 }
 
+function toCoworkerConfig(record: OfficeAgentRecord): CoworkerConfig {
+  return {
+    id: record.id,
+    name: record.name,
+    role: record.role,
+    description: record.description,
+    goal: record.goal,
+    avatarId: record.avatarId,
+    accent: record.accent,
+    projectPath: record.projectPath,
+    cliId: record.cliId || undefined,
+    provider: record.provider,
+    model: record.model,
+    autoMode: record.autoMode,
+    reasoning: record.reasoning,
+    template: record.template,
+    desk: record.desk,
+    startedAt: record.startedAt,
+    resumeSessionId: record.resumeSessionId,
+    worktree: record.worktree,
+    createdAt: record.createdAt ?? record.startedAt ?? Date.now()
+  }
+}
+
+const lastConfigs = new Map<string, CoworkerConfig>()
+
+function persistCoworker(record: OfficeAgentRecord): void {
+  const prev = lastConfigs.get(record.id)
+  const config = toCoworkerConfig(record)
+  const merged: CoworkerConfig = {
+    ...prev,
+    ...config,
+    desk: config.desk ?? prev?.desk,
+    reasoning: config.reasoning ?? prev?.reasoning,
+    template: config.template ?? prev?.template,
+    worktree: config.worktree ?? prev?.worktree,
+    resumeSessionId: config.resumeSessionId ?? prev?.resumeSessionId,
+    createdAt: config.createdAt ?? prev?.createdAt
+  }
+  lastConfigs.set(record.id, merged)
+  window.workspace.saveCoworker(merged).catch(() => {
+    // persistence is best-effort
+  })
+}
+
 function stripAnsi(data: string): string {
   // eslint-disable-next-line no-control-regex
   return data.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').replace(/\x1b\][^\x07]*\x07/g, '')
@@ -149,27 +206,35 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
     set((state) => {
       const isFirst = Object.keys(state.agents).length === 0
       const existing = state.agents[session.id]
+      const record: OfficeAgentRecord = {
+        id: session.id,
+        name: isFirst ? 'Manager' : session.name ?? existing?.name ?? session.cli.name,
+        role: isFirst ? 'Manager' : session.role ?? existing?.role ?? 'Developer',
+        cliId: session.cli.id,
+        status: session.status,
+        lastActivityAt: existing?.lastActivityAt ?? null,
+        promptPending: existing?.promptPending ?? false,
+        projectPath: session.projectPath,
+        avatarId: session.avatarId,
+        accent: session.accent,
+        description: session.description,
+        goal: session.goal,
+        startedAt: session.startedAt ?? existing?.startedAt,
+        provider: session.provider ?? session.cli.name,
+        model: session.model,
+        autoMode: session.autoMode,
+        reasoning: existing?.reasoning,
+        template: existing?.template,
+        desk: existing?.desk,
+        resumeSessionId: session.resumeSessionId ?? existing?.resumeSessionId,
+        worktree: existing?.worktree,
+        createdAt: existing?.createdAt
+      }
+      persistCoworker(record)
       return {
         agents: {
           ...state.agents,
-          [session.id]: {
-            id: session.id,
-            name: isFirst ? 'Manager' : session.name ?? existing?.name ?? session.cli.name,
-            role: isFirst ? 'Manager' : session.role ?? existing?.role ?? 'Developer',
-            cliId: session.cli.id,
-            status: session.status,
-            lastActivityAt: existing?.lastActivityAt ?? null,
-            promptPending: existing?.promptPending ?? false,
-            projectPath: session.projectPath,
-            avatarId: session.avatarId,
-            accent: session.accent,
-            description: session.description,
-            goal: session.goal,
-            startedAt: session.startedAt ?? existing?.startedAt,
-            provider: session.provider ?? session.cli.name,
-            model: session.model,
-            autoMode: session.autoMode
-          }
+          [session.id]: record
         },
         managerId: isFirst ? session.id : state.managerId,
         selectedId: state.selectedId ?? session.id
@@ -178,32 +243,89 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
 
   hireAgent: (profile) => {
     const id = `draft-${++draftCounter}`
+    const isFirst = Object.keys(get().agents).length === 0
+    const desk = Object.keys(get().agents).length
+    const record: OfficeAgentRecord = {
+      id,
+      name: isFirst ? 'Manager' : profile.name,
+      role: isFirst ? 'Manager' : profile.role,
+      cliId: profile.cliId ?? '',
+      status: 'idle',
+      lastActivityAt: null,
+      promptPending: false,
+      projectPath: profile.projectPath,
+      description: profile.description,
+      goal: profile.goal,
+      avatarId: profile.avatarId,
+      accent: profile.accent,
+      autoMode: profile.autoMode,
+      reasoning: profile.reasoning,
+      template: profile.template,
+      desk: profile.desk ?? desk,
+      resumeSessionId: profile.resumeSessionId,
+      worktree: profile.worktree,
+      createdAt: Date.now()
+    }
+    persistCoworker(record)
+    set((state) => ({
+      agents: {
+        ...state.agents,
+        [id]: record
+      },
+      managerId: isFirst ? id : state.managerId,
+      selectedId: state.selectedId ?? id
+    }))
+    return id
+  },
+
+  hydrateCoworkers: (configs) => {
+    for (const config of configs) {
+      lastConfigs.set(config.id, config)
+    }
+    const existing = new Set(Object.keys(get().agents))
+    let changed = false
+    const hydrated: Record<string, OfficeAgentRecord> = {}
+    for (const config of configs) {
+      if (existing.has(config.id)) {
+        continue
+      }
+      changed = true
+      hydrated[config.id] = {
+        id: config.id,
+        name: config.name,
+        role: config.role,
+        cliId: config.cliId ?? '',
+        status: 'idle',
+        lastActivityAt: null,
+        promptPending: false,
+        projectPath: config.projectPath,
+        avatarId: config.avatarId,
+        accent: config.accent,
+        description: config.description,
+        goal: config.goal,
+        startedAt: config.startedAt,
+        provider: config.provider,
+        model: config.model,
+        autoMode: config.autoMode,
+        reasoning: config.reasoning,
+        template: config.template,
+        desk: config.desk,
+        resumeSessionId: config.resumeSessionId,
+        worktree: config.worktree,
+        createdAt: config.createdAt
+      }
+    }
+    if (!changed) {
+      return
+    }
     set((state) => {
       const isFirst = Object.keys(state.agents).length === 0
       return {
-        agents: {
-          ...state.agents,
-          [id]: {
-            id,
-            name: isFirst ? 'Manager' : profile.name,
-            role: isFirst ? 'Manager' : profile.role,
-            cliId: profile.cliId ?? '',
-            status: 'idle',
-            lastActivityAt: null,
-            promptPending: false,
-            projectPath: profile.projectPath,
-            description: profile.description,
-            goal: profile.goal,
-            avatarId: profile.avatarId,
-            accent: profile.accent,
-            autoMode: profile.autoMode
-          }
-        },
-        managerId: isFirst ? id : state.managerId,
-        selectedId: state.selectedId ?? id
+        agents: { ...state.agents, ...hydrated },
+        managerId: isFirst && Object.keys(hydrated).length > 0 ? Object.keys(hydrated)[0] : state.managerId,
+        selectedId: state.selectedId ?? (Object.keys(hydrated)[0] ?? null)
       }
     })
-    return id
   },
 
   recordOutput: (sessionId, data) => {
@@ -254,6 +376,18 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
     if (sessionId === get().managerId) {
       return
     }
+    const agent = get().agents[sessionId]
+    if (agent?.worktree && agent.worktree.base) {
+      window.workspace
+        .worktreeRemove(agent.worktree.base, agent.worktree.path)
+        .catch(() => {
+          // worktree cleanup is best-effort
+        })
+    }
+    window.workspace.removeCoworker(sessionId).catch(() => {
+      // config removal is best-effort
+    })
+    lastConfigs.delete(sessionId)
     set((state) => {
       const agents = { ...state.agents }
       delete agents[sessionId]
@@ -277,7 +411,9 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
       if (!agent) {
         return state
       }
-      return { agents: { ...state.agents, [sessionId]: { ...agent, autoMode: value } } }
+      const record = { ...agent, autoMode: value }
+      persistCoworker(record)
+      return { agents: { ...state.agents, [sessionId]: record } }
     }),
 
   updateAgentMeta: (sessionId, fields) =>
@@ -286,7 +422,9 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
       if (!agent) {
         return state
       }
-      return { agents: { ...state.agents, [sessionId]: { ...agent, ...fields } } }
+      const record = { ...agent, ...fields }
+      persistCoworker(record)
+      return { agents: { ...state.agents, [sessionId]: record } }
     }),
 
   requestFocus: (sessionId) =>

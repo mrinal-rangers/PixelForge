@@ -18,6 +18,12 @@ function subscribe<T>(channel: string, callback: (payload: T) => void): () => vo
 
 const api: WorkspaceApi = {
   getAppInfo: () => ipcRenderer.invoke('app:info'),
+  saveCoworker: (config) => ipcRenderer.invoke('coworker:save', config),
+  listCoworkers: () => ipcRenderer.invoke('coworker:list'),
+  removeCoworker: (id) => ipcRenderer.invoke('coworker:remove', id),
+  worktreeAdd: (basePath, name) => ipcRenderer.invoke('git:worktreeAdd', basePath, name),
+  worktreeRemove: (basePath, worktreePath) =>
+    ipcRenderer.invoke('git:worktreeRemove', basePath, worktreePath),
   selectProject: () => ipcRenderer.invoke('dialog:selectProject'),
   selectFiles: () => ipcRenderer.invoke('dialog:selectFiles'),
   listClis: () => ipcRenderer.invoke('cli:list'),

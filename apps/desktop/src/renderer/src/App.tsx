@@ -79,6 +79,17 @@ function App(): React.JSX.Element {
       })
   }, [])
 
+  useEffect(() => {
+    window.workspace
+      .listCoworkers()
+      .then((configs) => {
+        useOfficeStore.getState().hydrateCoworkers(configs)
+      })
+      .catch(() => {
+        // coworker configs are best-effort on startup
+      })
+  }, [])
+
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
   }, [])

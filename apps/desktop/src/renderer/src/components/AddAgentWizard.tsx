@@ -13,6 +13,74 @@ interface AddAgentWizardProps {
 
 const STEPS = ['Identity', 'Workspace', 'Engine', 'Briefing']
 
+const REASONING_LEVELS = [
+  { id: 'none', label: 'Balanced' },
+  { id: 'low', label: 'Focused' },
+  { id: 'high', label: 'Thorough' }
+]
+
+const TEMPLATES = [
+  {
+    id: 'developer',
+    name: 'Developer',
+    role: 'Developer',
+    description: 'Builds and maintains features across the codebase.',
+    goal: 'Ship working code that matches the team’s standards.'
+  },
+  {
+    id: 'research',
+    name: 'Research Assistant',
+    role: 'Research Assistant',
+    description: 'Digs into code, docs and the web to answer questions.',
+    goal: 'Gather accurate, well-sourced information for the team.'
+  },
+  {
+    id: 'docs',
+    name: 'Documentation Writer',
+    role: 'Documentation Writer',
+    description: 'Writes clear, current documentation for code and processes.',
+    goal: 'Keep documentation accurate and up to date.'
+  },
+  {
+    id: 'bug',
+    name: 'Bug Investigator',
+    role: 'Bug Investigator',
+    description: 'Reproduces, isolates and diagnoses bugs.',
+    goal: 'Find root causes and propose reliable fixes.'
+  },
+  {
+    id: 'reviewer',
+    name: 'Code Reviewer',
+    role: 'Code Reviewer',
+    description: 'Reviews changes for quality, safety and style.',
+    goal: 'Keep the codebase clean and free of regressions.'
+  },
+  {
+    id: 'release',
+    name: 'Release Manager',
+    role: 'Release Manager',
+    description: 'Prepares and verifies releases and versioning.',
+    goal: 'Ship stable, well-tested releases on schedule.'
+  }
+]
+
+function reasoningFlag(reasoning: string): string {
+  if (!reasoning || reasoning === 'none') {
+    return ''
+  }
+  return `--reasoning-effort ${reasoning}`
+}
+
+function resumeFlag(cliId: string, sessionId: string): string {
+  if (!sessionId) {
+    return ''
+  }
+  if (cliId === 'codex' || cliId === 'claude' || cliId === 'gemini') {
+    return `--resume ${sessionId}`
+  }
+  return ''
+}
+
 function randomName(): string {
   return CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)].name
 }
@@ -21,7 +89,9 @@ function buildCommand(
   cli: CliInfo | undefined,
   provider: string,
   model: string,
-  custom: string
+  custom: string,
+  reasoning: string,
+  resume: string
 ): string {
   if (custom.trim()) {
     return custom.trim()
@@ -37,7 +107,13 @@ function buildCommand(
   if (model.trim()) {
     parts.push(`--model "${model.trim()}"`)
   }
-  return parts.join(' ')
+  if (resume) {
+    parts.push(resumeFlag(cli.id, resume))
+  }
+  if (reasoning) {
+    parts.push(reasoningFlag(reasoning))
+  }
+  return parts.filter(Boolean).join(' ')
 }
 
 export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardProps): React.JSX.Element {
@@ -65,18 +141,34 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
   const [importError, setImportError] = useState<string | null>(null)
   const [description, setDescription] = useState('')
   const [goal, setGoal] = useState('')
+  const [template, setTemplate] = useState<string | null>(null)
+  const [reasoning, setReasoning] = useState('none')
+  const [autoMode, setAutoMode] = useState(true)
+  const [worktreeEnabled, setWorktreeEnabled] = useState(false)
+  const [resumeSessionId, setResumeSessionId] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const projects = useOfficeStore((s) => s.projects)
+  const allAgents = useOfficeStore((s) => Object.values(s.agents))
+  const resumeOptions = allAgents.filter(
+    (agent) => agent.id !== managerId && agent.cliId !== '' && agent.status !== 'running'
+  )
   const cli = useMemo(
     () => (cliId ? (clis.find((c) => c.id === cliId) ?? undefined) : undefined),
     [cliId, clis]
   )
   const command = useMemo(
-    () => buildCommand(cli, provider, model, customCommand),
-    [cli, provider, model, customCommand]
+    () => buildCommand(cli, provider, model, customCommand, reasoning, resumeSessionId),
+    [cli, provider, model, customCommand, reasoning, resumeSessionId]
   )
+
+  const applyTemplate = (t: (typeof TEMPLATES)[number]): void => {
+    setTemplate(t.id)
+    setRole(t.role)
+    setDescription(t.description)
+    setGoal(t.goal)
+  }
 
   const pickProject = async (): Promise<void> => {
     const path = await window.workspace.selectProject()
@@ -162,8 +254,14 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
     setBusy(true)
     setError(null)
     try {
+      const worktree = worktreeEnabled
+        ? await window.workspace.worktreeAdd(projectPath, name.trim() || 'coworker')
+        : { ok: true as const, path: projectPath, branch: undefined }
+      if (!worktree.ok || !worktree.path) {
+        throw new Error(worktree.error || 'Could not create git worktree')
+      }
       const options: CreateSessionOptions = {
-        projectPath,
+        projectPath: worktree.path,
         cliId,
         name,
         role,
@@ -171,7 +269,8 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
         goal,
         avatarId,
         accent,
-        autoMode: true,
+        autoMode,
+        resumeSessionId: resumeSessionId || undefined,
         cols: terminalSize.cols,
         rows: terminalSize.rows
       }
@@ -180,6 +279,29 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
       }
       const { sessionId } = await window.workspace.createSession(options)
       useOfficeStore.getState().addProject(projectPath)
+      const desk = Object.keys(useOfficeStore.getState().agents).length
+      window.workspace.saveCoworker({
+        id: sessionId,
+        name,
+        role,
+        description,
+        goal,
+        avatarId,
+        accent,
+        projectPath: worktree.path,
+        cliId,
+        provider,
+        model,
+        autoMode,
+        reasoning,
+        template: template ?? undefined,
+        worktree: worktreeEnabled
+          ? { base: projectPath, branch: worktree.branch ?? '', path: worktree.path }
+          : undefined,
+        desk,
+        resumeSessionId: resumeSessionId || undefined,
+        createdAt: Date.now()
+      })
       useOfficeStore.getState().requestFocus(sessionId)
       onClose()
     } catch (err) {
@@ -188,7 +310,7 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
     }
   }
 
-  const hire = (): void => {
+  const hire = async (): Promise<void> => {
     if (atCapacity) {
       setError('Maximum of 10 developers reached')
       return
@@ -197,11 +319,37 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
       setError('Choose a project folder before hiring')
       return
     }
-    useOfficeStore
-      .getState()
-      .hireAgent({ name, role, description, goal, avatarId, accent, autoMode: true })
-    useOfficeStore.getState().addProject(projectPath)
-    onClose()
+    setBusy(true)
+    setError(null)
+    try {
+      const worktree = worktreeEnabled
+        ? await window.workspace.worktreeAdd(projectPath, name.trim() || 'coworker')
+        : { ok: true as const, path: projectPath, branch: undefined }
+      if (!worktree.ok || !worktree.path) {
+        throw new Error(worktree.error || 'Could not create git worktree')
+      }
+      useOfficeStore.getState().hireAgent({
+        name,
+        role,
+        description,
+        goal,
+        avatarId,
+        accent,
+        autoMode,
+        reasoning,
+        template: template ?? undefined,
+        projectPath: worktree.path,
+        worktree: worktreeEnabled
+          ? { base: projectPath, branch: worktree.branch ?? '', path: worktree.path }
+          : undefined,
+        resumeSessionId: resumeSessionId || undefined
+      })
+      useOfficeStore.getState().addProject(projectPath)
+      onClose()
+    } catch (err) {
+      setBusy(false)
+      setError(err instanceof Error ? err.message : String(err))
+    }
   }
 
   return (
@@ -325,6 +473,38 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
                   </div>
                 </>
               )}
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={worktreeEnabled}
+                  onChange={(e) => setWorktreeEnabled(e.target.checked)}
+                />
+                Git worktree isolation
+              </label>
+              <span className="section-desc">
+                Creates a separate git worktree so this coworker never edits the shared working
+                copy.
+              </span>
+              {resumeOptions.length > 0 && (
+                <div className="field-row">
+                  <label className="field-label" htmlFor="wiz-resume">
+                    Resume
+                  </label>
+                  <select
+                    id="wiz-resume"
+                    className="text-input select"
+                    value={resumeSessionId}
+                    onChange={(e) => setResumeSessionId(e.target.value)}
+                  >
+                    <option value="">New session</option>
+                    {resumeOptions.map((agent) => (
+                      <option key={agent.id} value={agent.id}>
+                        {agent.name} ({agent.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
 
@@ -374,13 +554,38 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
                   />
                 </div>
               )}
+              {cli && (
+                <div className="field-row">
+                  <label className="field-label">Reasoning</label>
+                  <select
+                    className="text-input select"
+                    value={reasoning}
+                    onChange={(e) => setReasoning(e.target.value)}
+                  >
+                    {REASONING_LEVELS.map((level) => (
+                      <option key={level.id} value={level.id}>
+                        {level.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={autoMode}
+                  onChange={(e) => setAutoMode(e.target.checked)}
+                />
+                Auto mode
+              </label>
+              <span className="section-desc">Let the coworker run without prompts.</span>
               <div className="field-row">
                 <label className="field-label">Command</label>
                 <input
                   className="text-input mono"
                   value={customCommand}
                   onChange={(e) => setCustomCommand(e.target.value)}
-                  placeholder={cli ? buildCommand(cli, '', '', '') : 'Command override'}
+                  placeholder={cli ? buildCommand(cli, '', '', '', 'none', '') : 'Command override'}
                 />
               </div>
               <div className="command-preview" title={command}>
@@ -414,6 +619,26 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
               <p className="section-desc">
                 Describe what this coworker is here to do.
               </p>
+              <div className="template-grid">
+                <button
+                  className={`template-option ${template === null ? 'selected' : ''}`}
+                  onClick={() => {
+                    setTemplate(null)
+                  }}
+                >
+                  <span className="template-name">None</span>
+                </button>
+                {TEMPLATES.map((t) => (
+                  <button
+                    key={t.id}
+                    className={`template-option ${template === t.id ? 'selected' : ''}`}
+                    onClick={() => applyTemplate(t)}
+                    title={t.description}
+                  >
+                    <span className="template-name">{t.name}</span>
+                  </button>
+                ))}
+              </div>
               <div className="field-row">
                 <label className="field-label">Role</label>
                 <input

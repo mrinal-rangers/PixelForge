@@ -7,7 +7,9 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 
 import { detectClis, detectOneCli, getCliDefinition, listCliDefinitions } from './session/cliRegistry'
 import { AgentSession, SessionManager } from './session/sessionManager'
-import type { CliInfo, CreateSessionOptions } from '../shared/types'
+import { saveCoworker, listCoworkers, removeCoworker } from './coworkerStore'
+import { worktreeAdd, worktreeRemove } from './gitWorktree'
+import type { CliInfo, CreateSessionOptions, CoworkerConfig } from '../shared/types'
 
 const sessionManager = new SessionManager()
 
@@ -63,6 +65,24 @@ function registerIpcHandlers(): void {
       floorPath: join(base, 'resources', 'pixel-office')
     }
   })
+
+  ipcMain.handle('coworker:save', (_event, config: CoworkerConfig) => {
+    saveCoworker(config)
+  })
+
+  ipcMain.handle('coworker:list', () => listCoworkers())
+
+  ipcMain.handle('coworker:remove', (_event, id: string) => {
+    removeCoworker(id)
+  })
+
+  ipcMain.handle('git:worktreeAdd', (_event, basePath: string, name: string) =>
+    worktreeAdd(basePath, name)
+  )
+
+  ipcMain.handle('git:worktreeRemove', (_event, basePath: string, worktreePath: string) =>
+    worktreeRemove(basePath, worktreePath)
+  )
 
   ipcMain.handle('dialog:selectProject', async () => {
     const result = await dialog.showOpenDialog({

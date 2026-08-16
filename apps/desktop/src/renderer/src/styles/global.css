@@ -1383,6 +1383,43 @@ button {
   box-shadow: 0 3px 0 var(--shadow), 0 0 10px rgba(58, 157, 255, 0.35);
 }
 
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.template-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: var(--bg-raised);
+  border: 3px solid var(--border);
+  border-radius: 2px;
+  box-shadow: 0 3px 0 var(--shadow);
+  cursor: pointer;
+  transition: border-color 0.1s, transform 0.05s;
+}
+
+.template-option:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.template-option.selected {
+  border-color: var(--accent);
+  box-shadow: 0 3px 0 var(--shadow), 0 0 10px rgba(58, 157, 255, 0.35);
+}
+
+.template-name {
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: var(--text);
+  text-align: center;
+}
+
 .engine-name {
   font-family: 'PressStart', 'Courier New', monospace;
   font-size: 9px;
@@ -1895,6 +1932,7 @@ button {
 /* ---------- Roster ---------- */
 
 .agent-roster {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1940,6 +1978,18 @@ button {
   flex-shrink: 0;
   position: relative;
   transition: border-color 0.1s, transform 0.05s;
+}
+
+.roster-card-wrap {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.roster-card-wrap:hover .roster-card {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--shadow);
 }
 
 .roster-card:hover {
@@ -2008,8 +2058,71 @@ button {
   opacity: 0;
 }
 
-.roster-card:hover .roster-remove {
+.roster-card-wrap:hover .roster-remove {
   opacity: 1;
+}
+
+.roster-control {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--text-dim);
+  background: var(--bg);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+}
+
+.roster-control:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.roster-attention {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 9px;
+  font-weight: 400;
+  color: #fff;
+  background: var(--yellow);
+  border: 2px solid var(--border);
+}
+
+.roster-edit {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-card);
+  border: 3px solid var(--border);
+  box-shadow: 0 3px 0 var(--shadow);
+}
+
+.roster-edit-title {
+  font-family: 'PressStart', 'Courier New', monospace;
+  font-size: 8px;
+  color: var(--text-dim);
+  margin-right: 4px;
+}
+
+.roster-edit .text-input {
+  padding: 6px 8px;
+  font-size: 11px;
 }
 
 .roster-add {
