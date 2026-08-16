@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { MiniAvatar } from './MiniAvatar'
 import { PlusIcon } from './ChromeIcon'
-import { getAvatar } from '../office/characters'
-import { DEFAULT_COWORKER } from '../office/characters'
-import { useOfficeStore } from '../application/state/officeStore'
-import { useTaskStore } from '../application/state/taskStore'
-import type { OfficeAgentRecord } from '../application/state/officeStore'
+import { getAvatar } from '../scene/characters'
+import { DEFAULT_COWORKER } from '../scene/characters'
+import { useOfficeStore } from '../../application/state/officeStore'
+import { useTaskStore } from '../../application/state/taskStore'
+import type { OfficeAgentRecord } from '../../application/state/officeStore'
 
 interface AgentRosterProps {
   onAdd: () => void

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { DOWN_IDLE } from '../office/sprites'
-import { CHARACTER_CELL_H, CHARACTER_CELL_W } from '../office/types'
-import type { CharacterSpec } from '../office/types'
-import { drawGrid } from '../office/symbolColor'
+import { DOWN_IDLE } from '../scene/sprites'
+import { CHARACTER_CELL_H, CHARACTER_CELL_W } from '../scene/types'
+import type { CharacterSpec } from '../scene/types'
+import { drawGrid } from '../scene/symbolColor'
 
 interface MiniAvatarProps {
   spec: CharacterSpec

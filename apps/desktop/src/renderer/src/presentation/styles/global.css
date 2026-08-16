@@ -2,7 +2,7 @@
 
 @font-face {
   font-family: 'PressStart';
-  src: url('../assets/fonts/press-start-2p.woff2') format('woff2');
+  src: url('../../assets/fonts/press-start-2p.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

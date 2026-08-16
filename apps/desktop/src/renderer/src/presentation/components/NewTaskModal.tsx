@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { useOfficeStore } from '../application/state/officeStore'
-import { useTaskStore } from '../application/state/taskStore'
+import { useOfficeStore } from '../../application/state/officeStore'
+import { useTaskStore } from '../../application/state/taskStore'
 import { agentIsBusy } from '@shared/rules/task'
 import type { NewTaskInput, TaskAttachment, TaskPriority } from '@shared/types'
 

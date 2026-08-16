@@ -10,14 +10,9 @@ import { SettingsModal } from './components/SettingsModal'
 import { GemLogo } from './components/GemLogo'
 import { MoonIcon, SunIcon } from './components/ThemeIcon'
 import { SettingsIcon } from './components/ChromeIcon'
-import { useOfficeStore } from './application/state/officeStore'
-import { useTaskStore } from './application/state/taskStore'
-import { useGoalStore } from './application/state/goalStore'
-import { useMemoryStore } from './application/state/memoryStore'
-import { parseTaskOutput } from './application/events/taskEvents'
-import { parseGoalOutput } from './application/events/goalEvents'
-import { parseMemoryOutput } from './application/events/memoryEvents'
-import { startGoalEngine } from './application/services/goalEngine'
+import { useOfficeStore } from '../application/state/officeStore'
+import { useTaskStore } from '../application/state/taskStore'
+import { initApplication } from '../application/bootstrap'
 import { TaskBoard } from './components/TaskBoard'
 import { NotificationHost } from './components/NotificationHost'
 import type { CliInfo } from '@shared/types'
@@ -77,76 +72,7 @@ function App(): React.JSX.Element {
   }, [refreshClis])
 
   useEffect(() => {
-    const unsubscribe = window.workspace.onSessionStatus(({ session }) => {
-      useOfficeStore.getState().upsertAgent(session)
-      const tasks = Object.values(useTaskStore.getState().tasks).filter(
-        (t) => t.assignedAgentId === session.id && t.status === 'ongoing'
-      )
-      if (session.status === 'error') {
-        for (const task of tasks) {
-          useTaskStore.getState().failTask(task.id, 'The terminal process failed.')
-        }
-      } else if (session.status === 'stopped' || session.status === 'completed') {
-        for (const task of tasks) {
-          useTaskStore.getState().setStatus(task.id, 'todo')
-          useTaskStore.getState().addEvent(
-            task.id,
-            'note',
-            session.status === 'completed'
-              ? 'Session ended before the task reported completion'
-              : 'Terminal stopped; task paused'
-          )
-        }
-      }
-    })
-    return unsubscribe
-  }, [])
-
-  useEffect(() => {
-    const unsubscribe = window.workspace.onSessionOutput(({ sessionId, data }) => {
-      useOfficeStore.getState().recordOutput(sessionId, data)
-      parseTaskOutput(sessionId, data)
-      parseGoalOutput(sessionId, data)
-      parseMemoryOutput(sessionId, data)
-    })
-    return unsubscribe
-  }, [])
-
-  useEffect(() => {
-    void useTaskStore.getState().hydrate()
-    void useGoalStore.getState().hydrate()
-    void useMemoryStore.getState().hydrate()
-  }, [])
-
-  useEffect(() => {
-    startGoalEngine()
-  }, [])
-
-  useEffect(() => {
-    window.workspace
-      .listSessions()
-      .then((sessions) => {
-        for (const session of sessions) {
-          useOfficeStore.getState().upsertAgent(session)
-        }
-      })
-      .catch(() => {
-        // sessions list is best-effort on startup
-      })
-      .finally(() => {
-        setSessionsLoaded(true)
-      })
-  }, [])
-
-  useEffect(() => {
-    window.workspace
-      .listCoworkers()
-      .then((configs) => {
-        useOfficeStore.getState().hydrateCoworkers(configs)
-      })
-      .catch(() => {
-        // coworker configs are best-effort on startup
-      })
+    initApplication({ onSessionsLoaded: () => setSessionsLoaded(true) })
   }, [])
 
   const toggleTheme = useCallback(() => {

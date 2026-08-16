@@ -1,6 +1,6 @@
 import { useShallow } from 'zustand/react/shallow'
-import { useTaskStore } from '../application/state/taskStore'
-import type { TaskNotificationKind } from '../application/state/taskStore'
+import { useTaskStore } from '../../application/state/taskStore'
+import type { TaskNotificationKind } from '../../application/state/taskStore'
 
 export function NotificationHost(): React.JSX.Element {
   const notifications = useTaskStore(useShallow((s) => s.notifications))

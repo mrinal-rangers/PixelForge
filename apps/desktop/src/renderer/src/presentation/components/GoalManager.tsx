@@ -1,18 +1,18 @@
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { GoalPlan, GoalRecord, GoalTaskDraft, TaskPriority, TaskRecord } from '@shared/types'
-import { useGoalStore } from '../application/state/goalStore'
-import { useTaskStore } from '../application/state/taskStore'
+import { useGoalStore } from '../../application/state/goalStore'
+import { useTaskStore } from '../../application/state/taskStore'
 import { agentIsBusy } from '@shared/rules/task'
-import { useOfficeStore } from '../application/state/officeStore'
+import { useOfficeStore } from '../../application/state/officeStore'
 import {
   applyPlanAndRun,
   replan,
   sendPlanningRequest,
   RETRY_LIMIT
-} from '../application/services/goalEngine'
-import { answerQuestion as answerTaskQuestion } from '../application/services/taskRunner'
-import { answerQuestionForAgent } from '../application/services/taskRunner'
+} from '../../application/services/goalEngine'
+import { answerQuestion as answerTaskQuestion } from '../../application/services/taskRunner'
+import { answerQuestionForAgent } from '../../application/services/taskRunner'
 import { GoalInput } from './GoalInput'
 
 interface GoalManagerProps {

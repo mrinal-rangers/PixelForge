@@ -1,8 +1,8 @@
-import anthropicIcon from '../assets/providers/anthropic.svg'
-import geminiIcon from '../assets/providers/gemini.svg'
-import openaiIcon from '../assets/providers/openai.svg'
-import opencodeIcon from '../assets/providers/opencode.svg'
-import aiderIcon from '../assets/providers/aider.svg'
+import anthropicIcon from '../../assets/providers/anthropic.svg'
+import geminiIcon from '../../assets/providers/gemini.svg'
+import openaiIcon from '../../assets/providers/openai.svg'
+import opencodeIcon from '../../assets/providers/opencode.svg'
+import aiderIcon from '../../assets/providers/aider.svg'
 
 interface ProviderIconProps {
   cliId: string
