@@ -53,6 +53,7 @@ interface MessageState {
   markRead: (id: string) => void
   acknowledge: (id: string) => void
   process: (id: string) => void
+  markConversationRead: (conversationId: string, viewerId: string) => void
   setConversationStatus: (id: string, status: ConversationStatus) => void
   pushMail: (event: Omit<MailEvent, 'id'>) => void
   dismissMail: (id: string) => void
@@ -262,6 +263,29 @@ export const useMessageStore = create<MessageState>()((set, get) => {
       commit(next)
     },
 
+    markConversationRead: (conversationId, viewerId) => {
+      let changed = false
+      for (const message of Object.values(get().messages)) {
+        if (message.conversationId !== conversationId || message.readAt != null) {
+          continue
+        }
+        if (message.senderId === viewerId) {
+          continue
+        }
+        if (message.recipientId !== viewerId && !message.recipients?.includes(viewerId)) {
+          continue
+        }
+        if (message.status !== 'delivered' && message.status !== 'queued' && message.status !== 'read') {
+          continue
+        }
+        get().markRead(message.id)
+        changed = true
+      }
+      if (changed) {
+        set({ lastInboxChange: { agentId: viewerId, ts: Date.now() } })
+      }
+    },
+
     setConversationStatus: (id, status) => {
       const conversation = get().conversations[id]
       if (!conversation) {
@@ -302,26 +326,28 @@ export interface ConversationSummary {
   lastActivity: number
 }
 
-/** Sorted, most-recently-active-first conversation list for an agent. */
-export function conversationsFor(agentId: string): ConversationSummary[] {
+/** Sorted, most-recently-active-first conversation list.
+ *  With an agentId it only includes conversations that agent participates in;
+ *  without one it includes every conversation (used by Michael). */
+export function conversationSummaries(agentId?: string): ConversationSummary[] {
   const state = useMessageStore.getState()
   const now = Date.now()
   const summaries: ConversationSummary[] = []
   for (const conversation of Object.values(state.conversations)) {
-    if (!conversation.participants.includes(agentId) && conversation.kind !== 'announcement') {
+    if (agentId && !conversation.participants.includes(agentId)) {
       continue
     }
     const thread = Object.values(state.messages)
       .filter((message) => message.conversationId === conversation.id)
       .sort((a, b) => a.createdAt - b.createdAt)
-    if (thread.length === 0 && conversation.kind !== 'announcement') {
+    if (thread.length === 0) {
       continue
     }
     const last = thread[thread.length - 1]
     summaries.push({
       conversation,
       lastMessage: last,
-      unread: thread.filter((message) => isUnreadFor(message, agentId)).length,
+      unread: agentId ? thread.filter((message) => isUnreadFor(message, agentId)).length : 0,
       participantIds: conversation.participants.filter((id) => id !== agentId && id !== 'user'),
       messageCount: thread.length,
       lastActivity: last?.createdAt ?? conversation.updatedAt ?? now

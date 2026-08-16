@@ -1,4 +1,11 @@
-import type { ConversationRecord, MessageKind, MessagePriority, MessageRecord, NewMessageInput } from '@shared/types'
+import type {
+  ConversationRecord,
+  MessageKind,
+  MessagePriority,
+  MessageRecord,
+  NewMessageInput,
+  TaskRecord
+} from '@shared/types'
 import {
   USER_ID,
   conversationIdForTask,
@@ -100,6 +107,10 @@ function routeMessage(message: MessageRecord): void {
       kind: message.kind,
       ts: Date.now()
     })
+    const preview = messagePreview(message.text)
+    useOfficeStore
+      .getState()
+      .pushActivity(message.senderId, `Sent ${messageKindLabel(message.kind).toLowerCase()} to User: ${preview}`)
     if (message.urgent) {
       alertMichael(`An urgent message is waiting for you.`, message.taskId)
     }
@@ -109,15 +120,21 @@ function routeMessage(message: MessageRecord): void {
   const agent = useOfficeStore.getState().agents[recipient]
   if (!agent) {
     store.getState().updateStatus(message.id, 'failed')
+    useOfficeStore
+      .getState()
+      .pushActivity(message.senderId, `Message to ${recipient} failed to deliver (unknown coworker)`)
     alertMichael(`Delivery failed: recipient "${recipient}" is not a known coworker.`, message.taskId)
     return
   }
 
   const decision = deliveryDecision(agent.status, agent.promptPending)
+  let outcome: 'delivered' | 'queued' | 'failed' = 'queued'
   if (decision === 'deliver' && writeToTerminal(recipient, injectionText(message))) {
     store.getState().updateStatus(message.id, 'delivered')
+    outcome = 'delivered'
   } else if (decision === 'failed') {
     store.getState().updateStatus(message.id, 'failed')
+    outcome = 'failed'
     alertMichael(`Message to ${agent.name} could not be delivered (worker is down).`, message.taskId)
   } else {
     store.getState().updateStatus(message.id, 'queued')
@@ -130,6 +147,16 @@ function routeMessage(message: MessageRecord): void {
     kind: message.kind,
     ts: Date.now()
   })
+
+  const preview = messagePreview(message.text)
+  const senderName = agentName(message.senderId)
+  const recipientName = agentName(recipient)
+  useOfficeStore
+    .getState()
+    .pushActivity(message.senderId, `Sent ${messageKindLabel(message.kind).toLowerCase()} to ${recipientName}: ${preview}`)
+  useOfficeStore
+    .getState()
+    .pushActivity(recipient, `Message from ${senderName} (${outcome}): ${preview}`)
 
   if (message.urgent) {
     alertMichael(`Urgent ${messageKindLabel(message.kind).toLowerCase()} sent to ${agent.name}.`, message.taskId)
@@ -385,6 +412,36 @@ export function proposeConversationMemory(conversationId: string): Promise<void>
     approval: 'pending'
   })
   return Promise.resolve()
+}
+
+/** Turn a request into a real board task, linked back to the conversation. */
+export async function convertMessageToTask(messageId: string): Promise<TaskRecord | null> {
+  const message = store.getState().messages[messageId]
+  if (!message) {
+    return null
+  }
+  const task = await useTaskStore.getState().createTask({
+    title: messagePreview(message.text, 60) || 'Follow-up task',
+    instructions: message.text,
+    projectPath: message.projectPath,
+    priority: message.priority,
+    dependencies: [],
+    attachments: []
+  })
+  if (!task) {
+    return null
+  }
+  void recordMessage({
+    conversationId: conversationIdForTask(task.id),
+    senderId: message.senderId,
+    recipientId: managerId() ?? USER_ID,
+    kind: 'assignment',
+    priority: task.priority,
+    text: `Task [${task.id}] created from this request.`,
+    taskId: task.id,
+    projectPath: task.projectPath
+  })
+  return task
 }
 
 /** Ask Michael to summarize a long conversation via its terminal. */

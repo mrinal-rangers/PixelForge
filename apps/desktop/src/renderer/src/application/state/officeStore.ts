@@ -79,6 +79,8 @@ interface OfficeState {
   ) => void
   recordOutput: (sessionId: string, data: string) => void
   recordInput: (sessionId: string) => void
+
+  pushActivity: (sessionId: string, text: string) => void
   removeAgent: (sessionId: string) => void
   requestFocus: (sessionId: string) => void
   setSelected: (sessionId: string | null) => void
@@ -356,6 +358,22 @@ export const useOfficeStore = create<OfficeState>()((set, get) => ({
       agents: {
         ...get().agents,
         [sessionId]: { ...agent, lastActivityAt: Date.now(), promptPending: false }
+      }
+    })
+  },
+
+  pushActivity: (sessionId, text) => {
+    if (!get().agents[sessionId]) {
+      return
+    }
+    const now = Date.now()
+    set({
+      activity: {
+        ...get().activity,
+        [sessionId]: [
+          ...(get().activity[sessionId] ?? []),
+          `[${new Date(now).toLocaleTimeString()}] ${text}`
+        ].slice(-400)
       }
     })
   },

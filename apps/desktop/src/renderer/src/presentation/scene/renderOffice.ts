@@ -3,6 +3,8 @@ import { Application, Assets, Container, Graphics, Sprite, Text, Texture } from 
 import { useOfficeStore } from '../../application/state/officeStore'
 import { useTaskStore } from '../../application/state/taskStore'
 import { useMemoryStore } from '../../application/state/memoryStore'
+import { useMessageStore, unreadCountFor } from '../../application/state/messageStore'
+import type { MailEvent } from '../../application/state/messageStore'
 import type { OfficeAgentRecord } from '../../application/state/officeStore'
 import officeFloorUrl from '../../assets/pixel-office/office-floor.png'
 import lookRedUrl from '../../assets/pixel-office/red.png'
@@ -80,6 +82,15 @@ interface AgentBehavior {
   entering: boolean
 }
 
+interface MailFlight {
+  group: Container
+  fromX: number
+  fromY: number
+  toX: number
+  toY: number
+  start: number
+}
+
 export class OfficeRenderer {
   private app!: Application
   private sceneRoot!: Container
@@ -89,6 +100,9 @@ export class OfficeRenderer {
   private archiveDoc!: Graphics
   private archiveWarning!: Graphics
   private archiveGlyph!: Text
+  private mailFlights = new Map<string, MailFlight>()
+  private seenMail = new Set<string>()
+  private mailIndicators = new Map<string, Graphics>()
 
   constructor(private readonly options: OfficeRendererOptions) {}
 
@@ -250,6 +264,10 @@ export class OfficeRenderer {
   private depthRemove(behavior: AgentBehavior): void {
     this.sceneRoot.removeChild(behavior.container)
     behavior.container.destroy({ children: true })
+    const indicator = this.mailIndicators.get(behavior.id)
+    if (indicator) {
+      this.mailIndicators.delete(behavior.id)
+    }
   }
 
   private spawnAgent(id: string, record: OfficeAgentRecord, index: number): void {
@@ -442,6 +460,7 @@ export class OfficeRenderer {
     this.syncAgents()
     const agents = useOfficeStore.getState().agents
     this.tickArchive(now)
+    this.tickMail(now)
     for (const behavior of this.agents.values()) {
       const record = agents[behavior.id]
       this.updateVisual(behavior, now, record)
@@ -562,5 +581,105 @@ export class OfficeRenderer {
     behavior.label.eventMode = 'static'
     behavior.label.cursor = 'pointer'
     behavior.label.on('pointertap', onTap)
+  }
+
+  // ---- Mail envelopes and indicators ---------------------------------------
+
+  private tickMail(now: number): void {
+    const { mailEvents } = useMessageStore.getState()
+    for (const event of mailEvents) {
+      if (this.seenMail.has(event.id)) {
+        continue
+      }
+      this.seenMail.add(event.id)
+      this.spawnMailFlight(event, now)
+    }
+    if (this.seenMail.size > 120) {
+      const active = new Set(mailEvents.map((event) => event.id))
+      for (const id of [...this.seenMail]) {
+        if (!active.has(id)) {
+          this.seenMail.delete(id)
+        }
+      }
+    }
+
+    for (const [id, flight] of this.mailFlights) {
+      const t = Math.min(1, (now - flight.start) / 900)
+      const x = flight.fromX + (flight.toX - flight.fromX) * t
+      const y = flight.fromY + (flight.toY - flight.fromY) * t - Math.sin(t * Math.PI) * 42
+      flight.group.position.set(x, y)
+      flight.group.rotation = Math.sin(t * Math.PI) * 0.18
+      if (t >= 1) {
+        this.sceneRoot.removeChild(flight.group)
+        flight.group.destroy({ children: true })
+        this.mailFlights.delete(id)
+      }
+    }
+
+    for (const [agentId, behavior] of this.agents) {
+      const unread = unreadCountFor(agentId)
+      let indicator = this.mailIndicators.get(agentId)
+      if (unread > 0) {
+        if (!indicator) {
+          indicator = this.buildMailIndicator()
+          behavior.container.addChild(indicator)
+          this.mailIndicators.set(agentId, indicator)
+        }
+        indicator.visible = true
+        const bob = Math.floor(now / 400) % 2 === 0 ? -2 : 0
+        indicator.position.set(26, -30 + bob)
+      } else if (indicator) {
+        indicator.visible = false
+      }
+    }
+  }
+
+  private spawnMailFlight(event: MailEvent, now: number): void {
+    const desk = (id: string): { x: number; y: number } | null => {
+      if (id === 'user') {
+        return null
+      }
+      const behavior = this.agents.get(id)
+      return behavior
+        ? { x: behavior.container.position.x, y: behavior.container.position.y - 70 }
+        : null
+    }
+    const from = desk(event.fromId)
+    if (!from) {
+      return
+    }
+    const to = desk(event.toId)
+    const group = this.buildEnvelope(event.urgent)
+    group.position.set(from.x, from.y)
+    group.zIndex = 1000
+    this.sceneRoot.addChild(group)
+    this.mailFlights.set(event.id, {
+      group,
+      fromX: from.x,
+      fromY: from.y,
+      toX: to ? to.x : from.x + 200,
+      toY: to ? to.y : -60,
+      start: now
+    })
+  }
+
+  private buildEnvelope(urgent: boolean): Container {
+    const group = new Container()
+    const g = new Graphics()
+    const color = urgent ? '#ff4d5e' : '#f0e6c8'
+    g.rect(-8, -6, 16, 12).fill(color).stroke({ width: 2, color: '#141a2e' })
+    g.poly([-8, -6, 0, 2, 8, -6]).fill('#141a2e')
+    g.rect(-4, -3, 2, 2).fill(urgent ? '#ffffff' : '#5a5f78')
+    g.poly([-8, 6, 0, -2, 8, 6]).fill('#ffffff33')
+    group.addChild(g)
+    return group
+  }
+
+  private buildMailIndicator(): Graphics {
+    const g = new Graphics()
+    g.rect(-7, -5, 14, 10).fill('#ffcc33').stroke({ width: 2, color: '#141a2e' })
+    g.poly([-7, -5, 0, 1, 7, -5]).fill('#141a2e')
+    g.visible = false
+    return g
   }
 }

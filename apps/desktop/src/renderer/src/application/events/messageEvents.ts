@@ -33,6 +33,9 @@ function stripAnsi(data: string): string {
 
 function resolveRecipient(needle: string): string | undefined {
   const target = needle.trim().toLowerCase()
+  if (target === 'user' || target === 'me' || target === 'you' || target === 'the user') {
+    return USER_ID
+  }
   const agents = useOfficeStore.getState().agents
   const direct = Object.values(agents).find((agent) => agent.id === needle || agent.name === needle)
   if (direct) {
@@ -77,29 +80,30 @@ export function parseMessageOutput(sessionId: string, data: string): void {
 
       if (parsed.replyTo) {
         const target = messageState.messages[parsed.replyTo]
-        if (target) {
-          if (target.senderId === sessionId) {
-            // an agent replying to its own message is ignored
-            continue
-          }
-          if (!parsed.text) {
-            acknowledgeMessage(target.id)
-            continue
-          }
-          void sendMessage({
-            conversationId: target.conversationId,
-            replyToId: target.id,
-            senderId: sessionId,
-            recipientId: target.senderId,
-            kind: isValidKind(parsed.kind ?? '') ? (parsed.kind as MessageKind) : 'answer',
-            priority: isValidPriority(parsed.priority ?? '') ? (parsed.priority as MessagePriority) : 'medium',
-            text: parsed.text,
-            taskId: target.taskId,
-            goalId: target.goalId,
-            projectPath: target.projectPath
-          })
+        if (!target) {
           continue
         }
+        if (target.senderId === sessionId) {
+          // an agent replying to its own message is ignored
+          continue
+        }
+        if (!parsed.text) {
+          acknowledgeMessage(target.id)
+          continue
+        }
+        void sendMessage({
+          conversationId: target.conversationId,
+          replyToId: target.id,
+          senderId: sessionId,
+          recipientId: target.senderId,
+          kind: isValidKind(parsed.kind ?? '') ? (parsed.kind as MessageKind) : 'answer',
+          priority: isValidPriority(parsed.priority ?? '') ? (parsed.priority as MessagePriority) : 'medium',
+          text: parsed.text,
+          taskId: target.taskId,
+          goalId: target.goalId,
+          projectPath: target.projectPath
+        })
+        continue
       }
 
       if (!parsed.text) {

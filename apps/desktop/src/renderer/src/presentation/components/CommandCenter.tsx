@@ -1,19 +1,22 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { TerminalView } from './TerminalView'
 import { MiniAvatar } from './MiniAvatar'
 import { GoalManager } from './GoalManager'
 import { MemoryPanel } from './MemoryPanel'
+import { MessagesPanel } from './MessagesPanel'
 import { getAvatar, DEFAULT_COWORKER } from '../scene/characters'
 import { useOfficeStore } from '../../application/state/officeStore'
 import { useTaskStore } from '../../application/state/taskStore'
+import { useMessageStore } from '../../application/state/messageStore'
 import { answerQuestionForAgent } from '../../application/services/taskRunner'
 import { taskLoadFor } from '@shared/rules/task'
+import { USER_ID } from '@shared/rules/message'
 import type { OfficeAgentRecord } from '../../application/state/officeStore'
-import type { CliInfo, SessionStatus } from '@shared/types'
+import type { CliInfo, MessageRecord, SessionStatus } from '@shared/types'
 
 type WorkerTabId = 'terminal' | 'tasks' | 'git' | 'messages' | 'traces'
-type ManagerTabId = 'goal' | 'terminal' | 'monitor' | 'tasks' | 'ask-me' | 'commands' | 'memory'
+type ManagerTabId = 'goal' | 'terminal' | 'monitor' | 'tasks' | 'ask-me' | 'messages' | 'commands' | 'memory'
 type TabId = WorkerTabId | ManagerTabId
 
 const WORKER_TABS: { id: WorkerTabId; label: string }[] = [
@@ -30,6 +33,7 @@ const MANAGER_TABS: { id: ManagerTabId; label: string }[] = [
   { id: 'monitor', label: 'Monitor' },
   { id: 'tasks', label: 'Tasks' },
   { id: 'ask-me', label: 'Ask Me' },
+  { id: 'messages', label: 'Messages' },
   { id: 'commands', label: 'Commands' },
   { id: 'memory', label: 'Memory' }
 ]
@@ -79,15 +83,35 @@ export function CommandCenter({
   const agents = useOfficeStore(useShallow((s) => Object.values(s.agents)))
   const activity = useOfficeStore(useShallow((s) => s.activity[agentId] ?? []))
   const notes = useOfficeStore(useShallow((s) => s.memory.filter((n) => n.agentId === agentId)))
-  const conversation = useOfficeStore(useShallow((s) => s.conversations[agentId] ?? []))
   const managerId = useOfficeStore((s) => s.managerId)
   const updateAgentMeta = useOfficeStore((s) => s.updateAgentMeta)
   const pushConversation = useOfficeStore((s) => s.pushConversation)
-  const clearConversation = useOfficeStore((s) => s.clearConversation)
   const removeMemory = useOfficeStore((s) => s.removeMemory)
   const requestFocus = useOfficeStore((s) => s.requestFocus)
   const teamTasks = useTaskStore(useShallow((s) => Object.values(s.tasks)))
   const selectTask = useTaskStore((s) => s.selectTask)
+  const messageUnread = useMessageStore((s) => {
+    const target = agentId === managerId ? USER_ID : agentId
+    let count = 0
+    for (const message of Object.values(s.messages)) {
+      if (
+        message.readAt == null &&
+        message.senderId !== target &&
+        (message.recipientId === target || message.recipients?.includes(target))
+      ) {
+        count += 1
+      }
+    }
+    return count
+  })
+  const decisions = useMessageStore(useShallow((s) =>
+    Object.values(s.messages).filter(
+      (m) =>
+        m.recipientId === USER_ID &&
+        m.readAt == null &&
+        (m.status === 'delivered' || m.status === 'queued' || m.status === 'read')
+    )
+  ))
 
   const isManager = agent?.id === managerId
 
@@ -100,7 +124,6 @@ export function CommandCenter({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
   const [engine, setEngine] = useState(agent?.cliId ?? '')
-  const activityRef = useRef<HTMLDivElement>(null)
 
   const avatar = useMemo(() => getAvatar(agent?.avatarId ?? '') ?? DEFAULT_COWORKER, [agent])
 
@@ -260,35 +283,14 @@ export function CommandCenter({
 
   const renderMessages = (): React.JSX.Element => {
     return (
-      <div className="cc-panel">
-        <div className="cc-panel-tools">
-          <span className="section-desc">{conversation.length} messages</span>
-          <button
-            className="btn btn-small"
-            onClick={() => clearConversation(agent.id)}
-            disabled={conversation.length === 0}
-          >
-            Clear
-          </button>
-        </div>
-        <div className="queue-list" ref={activityRef}>
-          {conversation.length === 0 && (
-            <p className="cc-placeholder">
-              No messages yet. Anything the agent needs from you lands here.
-            </p>
-          )}
-          {conversation.map((message) => (
-            <div key={message.id} className={`queue-item ${message.from}`}>
-              <span className="queue-badge">{message.from === 'me' ? 'YOU' : 'AGENT'}</span>
-              <span className="queue-text">{message.text}</span>
-              <span className="queue-ts">{new Date(message.ts).toLocaleTimeString()}</span>
-            </div>
-          ))}
-        </div>
-        <p className="cc-scaffold-hint">
-          Messages are typed straight into the coworker's live terminal.
-        </p>
-      </div>
+      <MessagesPanel
+        viewerId={agent.id}
+        isManager={isManager}
+        onOpenTask={(taskId) => {
+          selectTask(taskId)
+          onOpenBoard()
+        }}
+      />
     )
   }
 
@@ -591,11 +593,11 @@ export function CommandCenter({
     return (
       <div className="cc-panel">
         <div className="cc-panel-tools">
-          <span className="section-desc">{blocked.length} blocked</span>
+          <span className="section-desc">{blocked.length + decisions.length} waiting</span>
         </div>
-        {blocked.length === 0 && (
+        {blocked.length === 0 && decisions.length === 0 && (
           <p className="cc-placeholder">
-            No worker is blocked right now. Blocked workers show up here.
+            Nothing needs you right now. Blocked workers and messages awaiting your decision show up here.
           </p>
         )}
         {blocked.map((worker) => (
@@ -608,8 +610,19 @@ export function CommandCenter({
             </button>
           </div>
         ))}
+        {decisions.map((message) => (
+          <div key={message.id} className="askme-item">
+            <span className="askme-message">
+              <strong>{message.senderId === USER_ID ? 'You' : messageSenderName(message)}</strong>: {message.text}
+            </span>
+            <span className="status-badge status-running">message</span>
+            <button className="btn btn-small" onClick={() => setTab('messages')}>
+              Open
+            </button>
+          </div>
+        ))}
         <p className="cc-scaffold-hint">
-          Answer here or via that worker's Messages tab.
+          Answer here or via that coworker's Messages tab.
         </p>
       </div>
     )
@@ -760,6 +773,9 @@ export function CommandCenter({
             onClick={() => setTab(entry.id)}
           >
             {entry.label}
+            {entry.id === 'messages' && messageUnread > 0 && (
+              <span className="cc-badge">{messageUnread}</span>
+            )}
           </button>
         ))}
       </div>
@@ -797,6 +813,10 @@ export function CommandCenter({
 function WorkerAvatar({ record }: { record: OfficeAgentRecord }): React.JSX.Element {
   const avatar = useMemo(() => getAvatar(record.avatarId ?? '') ?? DEFAULT_COWORKER, [record])
   return <MiniAvatar spec={avatar} scale={1} className="cc-avatar" />
+}
+
+function messageSenderName(message: MessageRecord): string {
+  return useOfficeStore.getState().agents[message.senderId]?.name ?? message.senderId
 }
 
 function workerStateLabel(record: OfficeAgentRecord): string {
