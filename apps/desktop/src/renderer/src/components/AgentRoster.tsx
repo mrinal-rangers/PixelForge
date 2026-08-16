@@ -4,9 +4,9 @@ import { MiniAvatar } from './MiniAvatar'
 import { PlusIcon } from './ChromeIcon'
 import { getAvatar } from '../office/characters'
 import { DEFAULT_COWORKER } from '../office/characters'
-import { useOfficeStore } from '../office/store'
-import { useTaskStore } from '../office/taskStore'
-import type { OfficeAgentRecord } from '../office/store'
+import { useOfficeStore } from '../application/state/officeStore'
+import { useTaskStore } from '../application/state/taskStore'
+import type { OfficeAgentRecord } from '../application/state/officeStore'
 
 interface AgentRosterProps {
   onAdd: () => void

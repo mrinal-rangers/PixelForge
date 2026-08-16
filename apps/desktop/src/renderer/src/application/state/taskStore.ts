@@ -8,8 +8,13 @@ import type {
   TaskStatus
 } from '@shared/types'
 import { recomputeDependents, dependenciesMet } from '@shared/rules/task'
-import { useOfficeStore } from './store'
-import { memoryBlockForTask, captureTaskMemory, rememberAnswer } from './memoryEngine'
+
+/**
+ * Task state (renderer side). Pure CRUD, persistence and notifications.
+ *
+ * Orchestration that touches terminals, the office store or the memory engine
+ * lives in application/services/taskRunner so this store stays dependency-free.
+ */
 
 export type TaskNotificationKind = 'info' | 'warning' | 'danger' | 'success'
 
@@ -30,6 +35,7 @@ interface TaskState {
   hydrate: () => Promise<void>
   selectTask: (id: string | null) => void
   dismissNotification: (id: number) => void
+  notify: (kind: TaskNotificationKind, title: string, taskId?: string, detail?: string) => void
   createTask: (input: NewTaskInput) => Promise<TaskRecord | null>
   removeTask: (id: string) => void
   updateTask: (id: string, changes: Partial<TaskRecord>) => void
@@ -38,62 +44,21 @@ interface TaskState {
   touch: (id: string) => void
   raiseQuestion: (id: string, question: Omit<TaskQuestion, 'id' | 'answeredAt'>) => void
   answerQuestion: (id: string, questionId: number, answer: string) => void
-  answerQuestionForAgent: (agentId: string, answer: string) => void
   setStatus: (id: string, status: TaskStatus) => void
   setReport: (id: string, report: CompletionReport) => void
   setFiles: (id: string, files: string[]) => void
   assignTask: (id: string, agentId: string | undefined) => void
-  startTask: (id: string) => void
+  startTask: (id: string) => TaskRecord | null
   pauseTask: (id: string) => void
   cancelTask: (id: string) => void
-  completeTask: (id: string, report?: CompletionReport) => void
+  completeTask: (id: string, report?: CompletionReport) => TaskRecord | null
   failTask: (id: string, reason: string) => void
   returnToTodo: (id: string) => void
-  sendInstructions: (id: string, text: string) => void
+  sendInstructions: (id: string, text: string) => TaskRecord | null
 }
 
 let notifyCounter = 0
 let eventCounter = 0
-
-function assignmentMessage(task: TaskRecord): string {
-  const agent = useOfficeStore.getState().agents[task.assignedAgentId ?? '']
-  const memory = memoryBlockForTask(
-    task,
-    agent
-      ? { id: agent.id, role: agent.role, projectPath: agent.projectPath }
-      : undefined
-  )
-  const lines = [
-    `Task [${task.id}]: ${task.title}`,
-    '',
-    task.instructions,
-    task.requirements ? `Completion requirements:\n${task.requirements}` : '',
-    task.dependencies.length > 0 ? 'This task may wait until its dependencies are done.' : '',
-    memory,
-    '',
-    'If you hit a question or need a decision, wait for the user to answer instead of guessing.'
-  ]
-  return lines.filter((line) => line.length > 0).join('\n')
-}
-
-/** Write a line into a coworker's live terminal. Returns false when unreachable. */
-function writeToAgent(agentId: string, text: string): boolean {
-  const agent = useOfficeStore.getState().agents[agentId]
-  if (!agent || agent.cliId === '') {
-    return false
-  }
-  if (
-    agent.status === 'idle' ||
-    agent.status === 'stopped' ||
-    agent.status === 'completed' ||
-    agent.status === 'error'
-  ) {
-    return false
-  }
-  window.workspace.sendInput(agentId, text + '\r')
-  useOfficeStore.getState().recordInput(agentId)
-  return true
-}
 
 const touchPersist = new Map<string, number>()
 
@@ -110,19 +75,6 @@ export const useTaskStore = create<TaskState>()((set, get) => {
     })
     set({ tasks })
     return record
-  }
-
-  const notify = (kind: TaskNotificationKind, title: string, taskId?: string, detail?: string): void => {
-    const id = ++notifyCounter
-    set({
-      notifications: [
-        ...get().notifications,
-        { id, kind, title, taskId, detail, ts: Date.now() }
-      ].slice(-6)
-    })
-    setTimeout(() => {
-      set({ notifications: get().notifications.filter((n) => n.id !== id) })
-    }, 6500)
   }
 
   return {
@@ -149,6 +101,19 @@ export const useTaskStore = create<TaskState>()((set, get) => {
     dismissNotification: (id) =>
       set({ notifications: get().notifications.filter((n) => n.id !== id) }),
 
+    notify: (kind, title, taskId, detail) => {
+      const id = ++notifyCounter
+      set({
+        notifications: [
+          ...get().notifications,
+          { id, kind, title, taskId, detail, ts: Date.now() }
+        ].slice(-6)
+      })
+      setTimeout(() => {
+        set({ notifications: get().notifications.filter((n) => n.id !== id) })
+      }, 6500)
+    },
+
     createTask: async (input) => {
       let created: TaskRecord | null = null
       try {
@@ -158,7 +123,7 @@ export const useTaskStore = create<TaskState>()((set, get) => {
       }
       const tasks = recomputeDependents({ ...get().tasks, [created.id]: created })
       set({ tasks, selectedTaskId: created.id })
-      notify('info', 'Task created', created.id, created.title)
+      get().notify('info', 'Task created', created.id, created.title)
       return created
     },
 
@@ -218,7 +183,7 @@ export const useTaskStore = create<TaskState>()((set, get) => {
           questions: [...task.questions, q]
         }
       })
-      notify(
+      get().notify(
         'warning',
         'Needs input',
         id,
@@ -232,7 +197,6 @@ export const useTaskStore = create<TaskState>()((set, get) => {
         return
       }
       const question = task.questions.find((q) => q.id === questionId)
-      const agentId = task.assignedAgentId
       const status = question ? 'ongoing' : task.status
       commit(id, (current) => ({
         ...current,
@@ -241,29 +205,7 @@ export const useTaskStore = create<TaskState>()((set, get) => {
           q.id === questionId ? { ...q, answer, answeredAt: Date.now() } : q
         )
       }))
-      if (agentId) {
-        writeToAgent(agentId, answer)
-      }
-      notify('info', 'Answer sent', id, answer)
-      if (question) {
-        rememberAnswer(question, answer, task)
-      }
-    },
-
-    answerQuestionForAgent: (agentId, answer) => {
-      const open = Object.values(get().tasks).find(
-        (t) =>
-          t.assignedAgentId === agentId &&
-          t.status === 'needs-input' &&
-          t.questions.some((q) => q.answeredAt == null)
-      )
-      if (!open) {
-        return
-      }
-      const question = open.questions.find((q) => q.answeredAt == null)
-      if (question) {
-        get().answerQuestion(open.id, question.id, answer)
-      }
+      get().notify('info', 'Answer sent', id, answer)
     },
 
     setStatus: (id, status) => {
@@ -287,7 +229,6 @@ export const useTaskStore = create<TaskState>()((set, get) => {
       commit(id, (t) => ({
         ...t,
         assignedAgentId: agentId,
-        status: agentId ? t.status : t.status,
         events: [
           ...t.events,
           {
@@ -299,23 +240,23 @@ export const useTaskStore = create<TaskState>()((set, get) => {
         ]
       }))
       if (agentId && agentId !== previous) {
-        notify('info', 'Task assigned', id, task.title)
+        get().notify('info', 'Task assigned', id, task.title)
       }
     },
 
     startTask: (id) => {
       const task = get().tasks[id]
       if (!task) {
-        return
+        return null
       }
       if (!dependenciesMet(task, get().tasks)) {
-        notify(
+        get().notify(
           'warning',
           'Waiting for dependencies',
           id,
           `${task.title} cannot start until its dependencies are done.`
         )
-        return
+        return null
       }
       const already = task.status === 'ongoing'
       const record = commit(id, (t) => ({
@@ -328,20 +269,10 @@ export const useTaskStore = create<TaskState>()((set, get) => {
           { id: ++eventCounter, type: 'started', text: 'Work started', ts: Date.now() }
         ]
       }))
-      if (record?.assignedAgentId) {
-        const delivered = writeToAgent(record.assignedAgentId, assignmentMessage(record))
-        if (!delivered) {
-          notify(
-            'warning',
-            'Coworker not running',
-            id,
-            `${useOfficeStore.getState().agents[record.assignedAgentId]?.name ?? 'Coworker'} has no live terminal. The task is queued until it is running.`
-          )
-        }
-      }
       if (!already) {
-        notify('success', 'Task started', id, task.title)
+        get().notify('success', 'Task started', id, task.title)
       }
+      return record
     },
 
     pauseTask: (id) => {
@@ -354,7 +285,7 @@ export const useTaskStore = create<TaskState>()((set, get) => {
           { id: ++eventCounter, type: 'paused', text: 'Work paused', ts: Date.now() }
         ]
       }))
-      notify('info', 'Task paused', id)
+      get().notify('info', 'Task paused', id)
     },
 
     cancelTask: (id) => {
@@ -366,7 +297,7 @@ export const useTaskStore = create<TaskState>()((set, get) => {
           { id: ++eventCounter, type: 'cancelled', text: 'Task cancelled', ts: Date.now() }
         ]
       }))
-      notify('danger', 'Task cancelled', id)
+      get().notify('danger', 'Task cancelled', id)
     },
 
     completeTask: (id, report) => {
@@ -382,10 +313,8 @@ export const useTaskStore = create<TaskState>()((set, get) => {
           { id: ++eventCounter, type: 'completed', text: 'Task completed', ts: now }
         ]
       }))
-      notify('success', 'Task completed', id, get().tasks[id]?.title)
-      if (record) {
-        void captureTaskMemory(record)
-      }
+      get().notify('success', 'Task completed', id, get().tasks[id]?.title)
+      return record
     },
 
     failTask: (id, reason) => {
@@ -397,7 +326,7 @@ export const useTaskStore = create<TaskState>()((set, get) => {
           { id: ++eventCounter, type: 'failed', text: reason, ts: Date.now() }
         ]
       }))
-      notify('danger', 'Task failed', id, reason)
+      get().notify('danger', 'Task failed', id, reason)
     },
 
     returnToTodo: (id) => {
@@ -416,7 +345,7 @@ export const useTaskStore = create<TaskState>()((set, get) => {
     sendInstructions: (id, text) => {
       const task = get().tasks[id]
       if (!task || !text.trim()) {
-        return
+        return null
       }
       commit(id, (t) => ({
         ...t,
@@ -425,10 +354,8 @@ export const useTaskStore = create<TaskState>()((set, get) => {
           { id: ++eventCounter, type: 'instruction', text: text.trim(), ts: Date.now() }
         ]
       }))
-      if (task.assignedAgentId) {
-        writeToAgent(task.assignedAgentId, text.trim())
-      }
-      notify('info', 'Instructions sent', id)
+      get().notify('info', 'Instructions sent', id)
+      return get().tasks[id] ?? null
     }
   }
 })

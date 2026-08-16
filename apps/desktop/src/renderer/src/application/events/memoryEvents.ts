@@ -1,6 +1,6 @@
 import type { MemoryType } from '@shared/types'
-import { proposeMemory } from './memoryEngine'
-import { useOfficeStore } from './store'
+import { proposeMemory } from '../services/memoryEngine'
+import { useOfficeStore } from '../state/officeStore'
 
 /**
  * Bridge between coworker terminal output and memory proposals.

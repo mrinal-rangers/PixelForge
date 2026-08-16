@@ -8,10 +8,10 @@ import type {
   MemoryType,
   MemoryVisibility
 } from '@shared/types'
-import { useMemoryStore } from '../office/memoryStore'
+import { useMemoryStore } from '../application/state/memoryStore'
 import { filterMemories, sourceLabel, containsSecret } from '@shared/rules/memory'
-import { proposeMemory } from '../office/memoryEngine'
-import { useOfficeStore } from '../office/store'
+import { proposeMemory } from '../application/services/memoryEngine'
+import { useOfficeStore } from '../application/state/officeStore'
 
 interface MemoryPanelProps {
   onOpenTask?: (taskId: string) => void

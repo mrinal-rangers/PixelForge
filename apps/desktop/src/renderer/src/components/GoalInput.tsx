@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { GoalApprovalMode, TaskAttachment, TaskPriority } from '@shared/types'
-import { useGoalStore } from '../office/goalStore'
-import { useOfficeStore } from '../office/store'
-import { sendPlanningRequest } from '../office/goalEngine'
+import { useGoalStore } from '../application/state/goalStore'
+import { useOfficeStore } from '../application/state/officeStore'
+import { sendPlanningRequest } from '../application/services/goalEngine'
 
 interface GoalInputProps {
   onClose: () => void

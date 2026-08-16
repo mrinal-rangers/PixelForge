@@ -1,5 +1,6 @@
 import type { CompletionReport, TaskRecord } from '@shared/types'
-import { useTaskStore } from './taskStore'
+import { useTaskStore } from '../state/taskStore'
+import { completeTask } from '../services/taskRunner'
 
 /**
  * Bridge between raw terminal output and the task system.
@@ -121,7 +122,7 @@ function handleStructured(
         concerns: evt.concerns ?? '',
         next: evt.next ?? []
       }
-      store.completeTask(task.id, report)
+      completeTask(task.id, report)
       break
     }
     case 'failed':

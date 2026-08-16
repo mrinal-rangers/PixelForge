@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { GoalPlan, GoalRecord, GoalTaskDraft, TaskPriority, TaskRecord } from '@shared/types'
-import { useGoalStore } from '../office/goalStore'
-import { useTaskStore } from '../office/taskStore'
+import { useGoalStore } from '../application/state/goalStore'
+import { useTaskStore } from '../application/state/taskStore'
 import { agentIsBusy } from '@shared/rules/task'
-import { useOfficeStore } from '../office/store'
+import { useOfficeStore } from '../application/state/officeStore'
 import {
   applyPlanAndRun,
   replan,
   sendPlanningRequest,
   RETRY_LIMIT
-} from '../office/goalEngine'
+} from '../application/services/goalEngine'
+import { answerQuestion as answerTaskQuestion } from '../application/services/taskRunner'
+import { answerQuestionForAgent } from '../application/services/taskRunner'
 import { GoalInput } from './GoalInput'
 
 interface GoalManagerProps {
@@ -61,7 +63,6 @@ export function GoalManager({ onOpenBoard }: GoalManagerProps): React.JSX.Elemen
   const answerGoalQuestion = useGoalStore((s) => s.answerQuestion)
 
   const tasks = useTaskStore(useShallow((s) => s.tasks))
-  const answerTaskQuestion = useTaskStore((s) => s.answerQuestion)
 
   const workers = useOfficeStore(
     useShallow((s) => Object.values(s.agents).filter((a) => a.id !== s.managerId))
@@ -170,7 +171,7 @@ export function GoalManager({ onOpenBoard }: GoalManagerProps): React.JSX.Elemen
     if (question?.taskId) {
       const task = tasks[question.taskId]
       if (task?.assignedAgentId) {
-        useTaskStore.getState().answerQuestionForAgent(task.assignedAgentId, answer)
+        answerQuestionForAgent(task.assignedAgentId, answer)
       }
     }
   }

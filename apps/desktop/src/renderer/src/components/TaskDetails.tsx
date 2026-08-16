@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { MiniAvatar } from './MiniAvatar'
 import { getAvatar, DEFAULT_COWORKER } from '../office/characters'
-import { useOfficeStore } from '../office/store'
-import { useTaskStore } from '../office/taskStore'
+import { useOfficeStore } from '../application/state/officeStore'
+import { useTaskStore } from '../application/state/taskStore'
+import { startTask, completeTask, sendInstructions, answerQuestion } from '../application/services/taskRunner'
 import { dependenciesMet, agentIsBusy } from '@shared/rules/task'
 import type { CompletionReport, TaskPriority, TaskRecord, TaskStatus } from '@shared/types'
 
@@ -63,14 +64,10 @@ export function TaskDetails({
   const task = useTaskStore((s) => s.tasks[taskId])
   const tasks = useTaskStore(useShallow((s) => Object.values(s.tasks)))
   const selectTask = useTaskStore((s) => s.selectTask)
-  const startTask = useTaskStore((s) => s.startTask)
   const pauseTask = useTaskStore((s) => s.pauseTask)
   const cancelTask = useTaskStore((s) => s.cancelTask)
   const returnToTodo = useTaskStore((s) => s.returnToTodo)
-  const completeTask = useTaskStore((s) => s.completeTask)
   const assignTask = useTaskStore((s) => s.assignTask)
-  const sendInstructions = useTaskStore((s) => s.sendInstructions)
-  const answerQuestion = useTaskStore((s) => s.answerQuestion)
 
   const agents = useOfficeStore(useShallow((s) => Object.values(s.agents)))
   const managerId = useOfficeStore((s) => s.managerId)

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ACCENT_COLORS, CHARACTERS } from '../office/characters'
-import { useOfficeStore } from '../office/store'
+import { useOfficeStore } from '../application/state/officeStore'
 import { MiniAvatar } from './MiniAvatar'
 import { CloseIcon } from './ChromeIcon'
 import type { AgentConfigFile, CliInfo, CreateSessionOptions } from '@shared/types'

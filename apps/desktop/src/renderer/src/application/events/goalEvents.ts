@@ -4,8 +4,8 @@ import type {
   TaskPriority
 } from '@shared/types'
 import { planRequiresApproval } from '@shared/rules/goal'
-import { useGoalStore } from './goalStore'
-import { applyPlanAndRun } from './goalEngine'
+import { useGoalStore } from '../state/goalStore'
+import { applyPlanAndRun } from '../services/goalEngine'
 
 /**
  * Bridge between the orchestrator session (Michael) and the goal record.

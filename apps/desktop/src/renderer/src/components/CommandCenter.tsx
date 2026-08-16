@@ -5,10 +5,11 @@ import { MiniAvatar } from './MiniAvatar'
 import { GoalManager } from './GoalManager'
 import { MemoryPanel } from './MemoryPanel'
 import { getAvatar, DEFAULT_COWORKER } from '../office/characters'
-import { useOfficeStore } from '../office/store'
-import { useTaskStore } from '../office/taskStore'
+import { useOfficeStore } from '../application/state/officeStore'
+import { useTaskStore } from '../application/state/taskStore'
+import { answerQuestionForAgent } from '../application/services/taskRunner'
 import { taskLoadFor } from '@shared/rules/task'
-import type { OfficeAgentRecord } from '../office/store'
+import type { OfficeAgentRecord } from '../application/state/officeStore'
 import type { CliInfo, SessionStatus } from '@shared/types'
 
 type WorkerTabId = 'terminal' | 'tasks' | 'git' | 'messages' | 'traces'
@@ -87,7 +88,6 @@ export function CommandCenter({
   const requestFocus = useOfficeStore((s) => s.requestFocus)
   const teamTasks = useTaskStore(useShallow((s) => Object.values(s.tasks)))
   const selectTask = useTaskStore((s) => s.selectTask)
-  const answerQuestionForAgent = useTaskStore((s) => s.answerQuestionForAgent)
 
   const isManager = agent?.id === managerId
 

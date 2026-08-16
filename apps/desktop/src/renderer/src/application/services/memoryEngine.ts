@@ -7,8 +7,8 @@ import {
   findConflict,
   makeTaskMemory
 } from '@shared/rules/memory'
-import { useMemoryStore } from './memoryStore'
-import { useGoalStore } from './goalStore'
+import { useMemoryStore } from '../state/memoryStore'
+import { useGoalStore } from '../state/goalStore'
 
 /**
  * Controlled creation of memories.

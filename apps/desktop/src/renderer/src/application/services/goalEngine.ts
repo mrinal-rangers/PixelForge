@@ -1,12 +1,13 @@
 import type { GoalRecord, GoalReport, TaskRecord } from '@shared/types'
 import { dependenciesMet, agentIsBusy } from '@shared/rules/task'
 import { rankMemories, sourceLabel } from '@shared/rules/memory'
-import { useGoalStore } from './goalStore'
-import { useTaskStore } from './taskStore'
-import { useOfficeStore } from './store'
-import type { OfficeAgentRecord } from './store'
-import { useMemoryStore } from './memoryStore'
+import { useGoalStore } from '../state/goalStore'
+import { useTaskStore } from '../state/taskStore'
+import { useOfficeStore } from '../state/officeStore'
+import type { OfficeAgentRecord } from '../state/officeStore'
+import { useMemoryStore } from '../state/memoryStore'
 import { expireGoalMemory } from './memoryEngine'
+import { startTask } from './taskRunner'
 
 /**
  * Deterministic team orchestration for goals.
@@ -397,7 +398,7 @@ function dispatch(goal: GoalRecord): void {
       continue
     }
     starting.add(assignee)
-    store.startTask(task.id)
+    startTask(task.id)
   }
 }
 

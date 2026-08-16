@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { OfficeRenderer } from '../office/renderOffice'
-import { useOfficeStore } from '../office/store'
+import { useOfficeStore } from '../application/state/officeStore'
 
 export function OfficeCanvas(): React.JSX.Element {
   const stageRef = useRef<HTMLDivElement>(null)
