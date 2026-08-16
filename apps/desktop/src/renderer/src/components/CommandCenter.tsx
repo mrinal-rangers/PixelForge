@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { TerminalView } from './TerminalView'
 import { MiniAvatar } from './MiniAvatar'
 import { GoalManager } from './GoalManager'
+import { MemoryPanel } from './MemoryPanel'
 import { getAvatar, DEFAULT_COWORKER } from '../office/characters'
 import { useOfficeStore } from '../office/store'
 import { useTaskStore, taskLoadFor } from '../office/taskStore'
@@ -81,7 +82,6 @@ export function CommandCenter({
   const updateAgentMeta = useOfficeStore((s) => s.updateAgentMeta)
   const pushConversation = useOfficeStore((s) => s.pushConversation)
   const clearConversation = useOfficeStore((s) => s.clearConversation)
-  const addMemory = useOfficeStore((s) => s.addMemory)
   const removeMemory = useOfficeStore((s) => s.removeMemory)
   const requestFocus = useOfficeStore((s) => s.requestFocus)
   const teamTasks = useTaskStore(useShallow((s) => Object.values(s.tasks)))
@@ -92,8 +92,6 @@ export function CommandCenter({
 
   const [tab, setTab] = useState<TabId>('terminal')
   const [draft, setDraft] = useState('')
-  const [memoryDraft, setMemoryDraft] = useState('')
-  const [memoryMode, setMemoryMode] = useState<'markdown' | 'text'>('markdown')
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
   const [editRole, setEditRole] = useState('')
@@ -196,15 +194,6 @@ export function CommandCenter({
       useOfficeStore.getState().recordInput(agent.id)
     }
     setDraft('')
-  }
-
-  const addMemoryNow = (): void => {
-    const text = memoryDraft.trim()
-    if (!text) {
-      return
-    }
-    addMemory(agent.id, text)
-    setMemoryDraft('')
   }
 
   const openEditor = (): void => {
@@ -645,60 +634,12 @@ export function CommandCenter({
 
   const renderMemory = (): React.JSX.Element => {
     return (
-      <div className="cc-panel">
-        <div className="cc-panel-tools">
-          <div className="memory-view-toggle">
-            <button
-              className={`memory-view-btn ${memoryMode === 'markdown' ? 'active' : ''}`}
-              onClick={() => setMemoryMode('markdown')}
-            >
-              Markdown
-            </button>
-            <button
-              className={`memory-view-btn ${memoryMode === 'text' ? 'active' : ''}`}
-              onClick={() => setMemoryMode('text')}
-            >
-              Text
-            </button>
-          </div>
-          <span className="section-desc">{notes.length} entries</span>
-        </div>
-        <div className="memory-doc">
-          {notes.length === 0 && (
-            <p className="cc-placeholder">The manager memory file is empty.</p>
-          )}
-          {notes.map((note) => (
-            <div key={note.id} className="memory-line">
-              <span className={`memory-mode-chip ${memoryMode}`}>{memoryMode}</span>
-              <pre className="memory-markdown">{note.text}</pre>
-              <span className="memory-ts">{new Date(note.ts).toLocaleTimeString()}</span>
-              <button
-                className="btn-icon btn-icon-small"
-                onClick={() => removeMemory(note.id)}
-                title="Remove entry"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="field-row">
-          <input
-            className="text-input"
-            value={memoryDraft}
-            onChange={(e) => setMemoryDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                addMemoryNow()
-              }
-            }}
-            placeholder="Append to memory file…"
-          />
-          <button className="btn btn-small" onClick={addMemoryNow}>
-            Save
-          </button>
-        </div>
-      </div>
+      <MemoryPanel
+        onOpenTask={(taskId) => {
+          selectTask(taskId)
+          onOpenBoard()
+        }}
+      />
     )
   }
 

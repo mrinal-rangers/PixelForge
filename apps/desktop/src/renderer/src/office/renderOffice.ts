@@ -2,6 +2,7 @@ import 'pixi.js/unsafe-eval'
 import { Application, Assets, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
 import { useOfficeStore } from './store'
 import { useTaskStore } from './taskStore'
+import { useMemoryStore } from './memoryStore'
 import type { OfficeAgentRecord } from './store'
 import officeFloorUrl from '../assets/pixel-office/office-floor.png'
 import lookRedUrl from '../assets/pixel-office/red.png'
@@ -85,6 +86,9 @@ export class OfficeRenderer {
   private agents = new Map<string, AgentBehavior>()
   private textures = new Map<string, Texture>()
   private destroyed = false
+  private archiveDoc!: Graphics
+  private archiveWarning!: Graphics
+  private archiveGlyph!: Text
 
   constructor(private readonly options: OfficeRendererOptions) {}
 
@@ -125,8 +129,81 @@ export class OfficeRenderer {
     floor.position.set(0, 0)
     this.sceneRoot.addChild(floor)
 
+    this.buildArchive()
     this.syncAgents()
     app.ticker.add(() => this.tick())
+  }
+
+  private buildArchive(): void {
+    const archive = new Container()
+    const shelf = new Graphics()
+    shelf.rect(0, 0, 96, 60).fill('#151a30').stroke({ width: 4, color: '#3b4a82' })
+    shelf.rect(4, 20, 88, 4).fill('#2a3352')
+    shelf.rect(4, 40, 88, 4).fill('#2a3352')
+    const bookColors = ['#e8b84b', '#4b9de8', '#7b5bd6', '#4bc98a', '#e86b6b']
+    for (let i = 0; i < 8; i++) {
+      const x = 8 + i * 11
+      const y = i % 2 === 0 ? 8 : 28
+      shelf.rect(x, y, 8, 12).fill(bookColors[i % bookColors.length])
+    }
+    archive.addChild(shelf)
+    const label = new Text({
+      text: 'ARCHIVE',
+      style: {
+        fontFamily: PIXEL_FONT,
+        fontSize: 8,
+        fill: '#8b93ad',
+        stroke: { color: '#141a2e', width: 3 }
+      }
+    })
+    label.position.set(0, 68)
+    archive.addChild(label)
+    archive.position.set(56, 160)
+    archive.zIndex = 100
+    this.sceneRoot.addChild(archive)
+
+    this.archiveDoc = new Graphics()
+    this.archiveDoc.visible = false
+    this.archiveDoc.zIndex = 101
+    this.sceneRoot.addChild(this.archiveDoc)
+
+    this.archiveWarning = new Graphics()
+    this.archiveWarning.visible = false
+    this.archiveWarning.zIndex = 102
+    this.sceneRoot.addChild(this.archiveWarning)
+
+    this.archiveGlyph = new Text({
+      text: '!',
+      style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: '#ffffff', stroke: { color: '#141a2e', width: 3 } }
+    })
+    this.archiveGlyph.anchor.set(0.5)
+    this.archiveGlyph.position.set(9, 9)
+    this.archiveWarning.addChild(this.archiveGlyph)
+  }
+
+  private tickArchive(now: number): void {
+    const memory = useMemoryStore.getState()
+    if (memory.lastCreated && now - memory.lastCreated.ts < 4000) {
+      this.archiveDoc.visible = true
+      this.archiveDoc.clear()
+      this.archiveDoc.rect(0, 0, 12, 15).fill('#f0e6c8').stroke({ width: 2, color: '#141a2e' })
+      this.archiveDoc.rect(3, 4, 6, 1).fill('#5a5f78')
+      this.archiveDoc.rect(3, 7, 6, 1).fill('#5a5f78')
+      this.archiveDoc.rect(3, 10, 4, 1).fill('#5a5f78')
+      this.archiveDoc.position.set(96, 160 + Math.floor((now % 500) / 250) * -2)
+    } else if (this.archiveDoc.visible) {
+      this.archiveDoc.visible = false
+    }
+
+    if (memory.conflictNotice && now - memory.conflictNotice.ts < 4000) {
+      this.archiveWarning.visible = true
+      this.archiveWarning.clear()
+      this.archiveWarning.roundRect(0, 0, 18, 18, 3).fill('#ff5c5c').stroke({ width: 3, color: '#141a2e' })
+      this.archiveWarning.position.set(150, 150)
+    } else if (this.archiveWarning.visible) {
+      this.archiveWarning.clear()
+      this.archiveWarning.visible = false
+    }
   }
 
   resize(availW: number, availH: number): void {
@@ -364,6 +441,7 @@ export class OfficeRenderer {
     const now = Date.now()
     this.syncAgents()
     const agents = useOfficeStore.getState().agents
+    this.tickArchive(now)
     for (const behavior of this.agents.values()) {
       const record = agents[behavior.id]
       this.updateVisual(behavior, now, record)

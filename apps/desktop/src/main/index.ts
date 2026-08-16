@@ -11,12 +11,22 @@ import { saveCoworker, listCoworkers, removeCoworker } from './coworkerStore'
 import { worktreeAdd, worktreeRemove } from './gitWorktree'
 import { createTask, listTasks, removeTask, saveTask } from './taskStore'
 import { createGoal, listGoals, removeGoal, saveGoal } from './taskStore'
+import {
+  clearMemories,
+  createMemory,
+  listMemories,
+  removeMemory,
+  saveMemory
+} from './taskStore'
+import { writeFile } from 'node:fs/promises'
 import type {
   CliInfo,
   CreateSessionOptions,
   CoworkerConfig,
   GoalRecord,
+  MemoryRecord,
   NewGoalInput,
+  NewMemoryInput,
   NewTaskInput,
   TaskRecord
 } from '../shared/types'
@@ -112,6 +122,57 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('goal:remove', (_event, goalId: string) => {
     removeGoal(goalId)
+  })
+
+  ipcMain.handle('memory:create', (_event, input: NewMemoryInput) => createMemory(input))
+
+  ipcMain.handle('memory:save', (_event, memory: MemoryRecord) => saveMemory(memory))
+
+  ipcMain.handle('memory:list', () => listMemories())
+
+  ipcMain.handle('memory:remove', (_event, memoryId: string) => {
+    removeMemory(memoryId)
+  })
+
+  ipcMain.handle('memory:clear', () => {
+    clearMemories()
+  })
+
+  ipcMain.handle('memory:export', async () => {
+    const memories = listMemories()
+    if (memories.length === 0) {
+      return null
+    }
+    const result = await dialog.showSaveDialog({
+      title: 'Export memories',
+      defaultPath: 'pixelforge-memories.md',
+      filters: [{ name: 'Markdown', extensions: ['md'] }]
+    })
+    if (result.canceled || !result.filePath) {
+      return null
+    }
+    const lines: string[] = ['# PixelForge Memory Export', '']
+    for (const memory of memories) {
+      if (memory.archived) {
+        continue
+      }
+      lines.push(`## ${memory.title}`)
+      lines.push('')
+      lines.push(`- Type: ${memory.type}`)
+      lines.push(`- Confidence: ${memory.confidence}`)
+      lines.push(`- Tags: ${memory.tags.join(', ') || '—'}`)
+      lines.push(`- Created: ${new Date(memory.createdAt).toISOString()}`)
+      if (memory.projectPath) {
+        lines.push(`- Project: ${memory.projectPath}`)
+      }
+      lines.push('')
+      lines.push(memory.content)
+      lines.push('')
+      lines.push('---')
+      lines.push('')
+    }
+    await writeFile(result.filePath, lines.join('\n'), 'utf8')
+    return result.filePath
   })
 
   ipcMain.handle('dialog:selectProject', async () => {

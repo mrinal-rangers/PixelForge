@@ -345,6 +345,91 @@ export interface NewGoalInput {
   approvalMode: GoalApprovalMode
 }
 
+export type MemoryType = 'user' | 'project' | 'decision' | 'task' | 'coworker' | 'temporary'
+export type MemoryVisibility = 'public' | 'team' | 'private'
+export type MemoryConfidence = 'high' | 'medium' | 'low'
+export type MemoryApproval = 'auto' | 'approved' | 'pending' | 'temporary' | 'rejected'
+
+export interface MemoryExpiration {
+  rule: 'none' | 'goal' | 'date'
+  date?: number
+  goalId?: string
+}
+
+export type MemorySource =
+  | { kind: 'user' }
+  | { kind: 'task-report'; taskId: string }
+  | { kind: 'ask-me'; goalId?: string; taskId?: string }
+  | { kind: 'file-inspection'; path?: string }
+  | { kind: 'terminal'; sessionId?: string }
+  | { kind: 'memory' }
+  | { kind: 'manual' }
+
+export interface MemoryRevision {
+  id: number
+  title: string
+  content: string
+  ts: number
+  reason: string
+}
+
+export interface MemoryUsage {
+  taskId: string
+  agentId?: string
+  ts: number
+}
+
+export interface MemoryRecord {
+  id: string
+  title: string
+  /** Markdown body. Human-readable and exportable. */
+  content: string
+  type: MemoryType
+  projectPath?: string
+  relatedAgentId?: string
+  relatedTaskId?: string
+  relatedGoalId?: string
+  source: MemorySource
+  createdBy: string
+  createdAt: number
+  updatedAt: number
+  confidence: MemoryConfidence
+  tags: string[]
+  visibility: MemoryVisibility
+  expiration?: MemoryExpiration
+  archived: boolean
+  pinned: boolean
+  unreliable: boolean
+  approval: MemoryApproval
+  lastUsedAt?: number
+  usage: MemoryUsage[]
+  revisions: MemoryRevision[]
+  /** Pending conflict: id of an existing memory this one disagrees with. */
+  conflictOf?: string
+  /** This memory superseded the memory with this id. */
+  resolvedWith?: string
+}
+
+export interface NewMemoryInput {
+  title: string
+  content: string
+  type: MemoryType
+  projectPath?: string
+  relatedAgentId?: string
+  relatedTaskId?: string
+  relatedGoalId?: string
+  source: MemorySource
+  createdBy: string
+  confidence: MemoryConfidence
+  tags: string[]
+  visibility: MemoryVisibility
+  expiration?: MemoryExpiration
+  approval: MemoryApproval
+  pinned?: boolean
+  /** Pending conflict: id of an existing memory this one disagrees with. */
+  conflictOf?: string
+}
+
 export interface WorkspaceApi {
   getAppInfo(): Promise<AppInfo>
   saveCoworker(config: CoworkerConfig): Promise<void>
@@ -360,6 +445,12 @@ export interface WorkspaceApi {
   goalSave(goal: GoalRecord): Promise<GoalRecord>
   goalList(): Promise<GoalRecord[]>
   goalRemove(goalId: string): Promise<void>
+  memoryCreate(input: NewMemoryInput): Promise<MemoryRecord>
+  memorySave(memory: MemoryRecord): Promise<MemoryRecord>
+  memoryList(): Promise<MemoryRecord[]>
+  memoryRemove(memoryId: string): Promise<void>
+  memoryClear(): Promise<void>
+  memoryExport(): Promise<string | null>
   selectProject(): Promise<string | null>
   selectFiles(): Promise<string[] | null>
   listClis(): Promise<CliInfo[]>

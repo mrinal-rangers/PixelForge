@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { BLOG_POSTS } from '../blog'
+import { BlogCover } from '../components/BlogCover'
 
 export function Blog(): React.JSX.Element {
   return (
@@ -14,6 +15,7 @@ export function Blog(): React.JSX.Element {
           {BLOG_POSTS.map((post) => (
             <article key={post.slug} className="blog-card">
               <Link to={`/blog/${post.slug}`} className="blog-card-link">
+                <BlogCover slug={post.slug} />
                 <div className="blog-meta">
                   <span className="blog-date">{post.date}</span>
                   <span className="blog-readtime">⏱ {post.readTime}</span>

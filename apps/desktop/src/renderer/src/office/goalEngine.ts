@@ -3,6 +3,8 @@ import { useGoalStore } from './goalStore'
 import { useTaskStore, dependenciesMet, agentIsBusy } from './taskStore'
 import { useOfficeStore } from './store'
 import type { OfficeAgentRecord } from './store'
+import { useMemoryStore, rankMemories, sourceLabel } from './memoryStore'
+import { expireGoalMemory } from './memoryEngine'
 
 /**
  * Deterministic team orchestration for goals.
@@ -48,6 +50,32 @@ export function planningBrief(goal: GoalRecord): string {
         `- ${record.name} (${record.role}) · ${record.model ?? record.provider ?? 'unknown'} · ${record.projectPath ? basename(record.projectPath) : 'no project'} · ${agentLive(record) ? 'available' : record.status}`
     )
     .join('\n')
+  const goalStatuses = Object.values(useGoalStore.getState().goals).map((g) => ({
+    id: g.id,
+    status: g.status
+  }))
+  const memories = rankMemories(
+    Object.values(useMemoryStore.getState().memories),
+    { title: goal.title, instructions: goal.request, projectPath: goal.projectPath },
+    undefined,
+    goalStatuses
+  )
+  const memoryBlock =
+    memories.length > 0
+      ? [
+          '',
+          '## Relevant project memory (from the shared archive)',
+          ...memories.map((memory) => {
+            const snippet = memory.content
+              .split('\n')
+              .map((line) => line.trim())
+              .filter(Boolean)
+              .slice(0, 2)
+              .join(' ')
+            return `- [${memory.title}] (${memory.type} · ${sourceLabel(memory.source)} · ${new Date(memory.createdAt).toLocaleDateString()})\n  ${snippet}`
+          })
+        ]
+      : []
   return [
     'You are Michael, the team orchestrator for PixelForge.',
     'A user has given the team a goal. Produce a structured execution plan ONLY. Do not edit code or start work.',
@@ -67,6 +95,7 @@ export function planningBrief(goal: GoalRecord): string {
     goal.budget ? `Budget: $${goal.budget}` : '',
     '',
     team.length > 0 ? `Available coworkers (choose the cheapest suitable one for each task):\n${team}` : '',
+    ...memoryBlock,
     '',
     'Reply with exactly one JSON payload on a single line, prefixed with the marker @pixelforge/plan. Schema:',
     '{"goal":"<goal id>","understanding":"<what the user wants in 1-2 sentences>","tasks":[{"title":"<task title>","instructions":"<clear, self-contained brief for the coworker>","assignee":"<coworker name or empty>","reason":"<why this coworker>","dependencies":["<titles of tasks that must finish first>"],"priority":"low|medium|high|urgent"}],"risks":["<missing info, destructive actions, external services, unclear requirements>"],"completionCriteria":"<what must be true for the goal to be finished>"}',
@@ -412,6 +441,7 @@ function checkProgress(goalId: string): void {
   if (done.length === child.length) {
     useGoalStore.getState().setReport(goalId, buildReport(goal, child))
     useGoalStore.getState().setStatus(goalId, 'completed')
+    expireGoalMemory(goalId)
     return
   }
   let next: GoalRecord['status'] = 'running'

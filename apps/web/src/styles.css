@@ -1048,6 +1048,42 @@ img {
 
 /* ---------------- Blog ---------------- */
 
+.blog-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 1.3rem 1rem 1.05rem;
+  margin: 0 0 1.2rem;
+  background: linear-gradient(135deg, var(--bg-navy), var(--bg-deep));
+  border-bottom: 2px solid var(--border);
+}
+
+.blog-cover svg {
+  width: 88px;
+  height: 88px;
+  display: block;
+}
+
+.blog-cover-lg {
+  padding: 1.8rem 1rem 1.5rem;
+}
+
+.blog-cover-lg svg {
+  width: 140px;
+  height: 140px;
+}
+
+.blog-cover-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
 .blog-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

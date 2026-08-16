@@ -8,6 +8,7 @@ import type {
   TaskStatus
 } from '@shared/types'
 import { useOfficeStore } from './store'
+import { memoryBlockForTask, captureTaskMemory, rememberAnswer } from './memoryEngine'
 
 export type TaskNotificationKind = 'info' | 'warning' | 'danger' | 'success'
 
@@ -110,12 +111,20 @@ export function agentIsBusy(
 }
 
 function assignmentMessage(task: TaskRecord): string {
+  const agent = useOfficeStore.getState().agents[task.assignedAgentId ?? '']
+  const memory = memoryBlockForTask(
+    task,
+    agent
+      ? { id: agent.id, role: agent.role, projectPath: agent.projectPath }
+      : undefined
+  )
   const lines = [
     `Task [${task.id}]: ${task.title}`,
     '',
     task.instructions,
     task.requirements ? `Completion requirements:\n${task.requirements}` : '',
     task.dependencies.length > 0 ? 'This task may wait until its dependencies are done.' : '',
+    memory,
     '',
     'If you hit a question or need a decision, wait for the user to answer instead of guessing.'
   ]
@@ -291,6 +300,9 @@ export const useTaskStore = create<TaskState>()((set, get) => {
         writeToAgent(agentId, answer)
       }
       notify('info', 'Answer sent', id, answer)
+      if (question) {
+        rememberAnswer(question, answer, task)
+      }
     },
 
     answerQuestionForAgent: (agentId, answer) => {
@@ -414,7 +426,7 @@ export const useTaskStore = create<TaskState>()((set, get) => {
 
     completeTask: (id, report) => {
       const now = Date.now()
-      commit(id, (t) => ({
+      const record = commit(id, (t) => ({
         ...t,
         status: 'done',
         report: report ?? t.report,
@@ -426,6 +438,9 @@ export const useTaskStore = create<TaskState>()((set, get) => {
         ]
       }))
       notify('success', 'Task completed', id, get().tasks[id]?.title)
+      if (record) {
+        void captureTaskMemory(record)
+      }
     },
 
     failTask: (id, reason) => {

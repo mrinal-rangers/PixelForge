@@ -13,8 +13,10 @@ import { SettingsIcon } from './components/ChromeIcon'
 import { useOfficeStore } from './office/store'
 import { useTaskStore } from './office/taskStore'
 import { useGoalStore } from './office/goalStore'
+import { useMemoryStore } from './office/memoryStore'
 import { parseTaskOutput } from './office/taskEvents'
 import { parseGoalOutput } from './office/goalEvents'
+import { parseMemoryOutput } from './office/memoryEvents'
 import { startGoalEngine } from './office/goalEngine'
 import { TaskBoard } from './components/TaskBoard'
 import { NotificationHost } from './components/NotificationHost'
@@ -105,6 +107,7 @@ function App(): React.JSX.Element {
       useOfficeStore.getState().recordOutput(sessionId, data)
       parseTaskOutput(sessionId, data)
       parseGoalOutput(sessionId, data)
+      parseMemoryOutput(sessionId, data)
     })
     return unsubscribe
   }, [])
@@ -112,6 +115,7 @@ function App(): React.JSX.Element {
   useEffect(() => {
     void useTaskStore.getState().hydrate()
     void useGoalStore.getState().hydrate()
+    void useMemoryStore.getState().hydrate()
   }, [])
 
   useEffect(() => {

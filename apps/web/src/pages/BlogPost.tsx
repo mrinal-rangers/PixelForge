@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import { getPost } from '../blog'
+import { BlogCover } from '../components/BlogCover'
 
 export function BlogPost(): React.JSX.Element {
   const { slug } = useParams<{ slug: string }>()
@@ -27,6 +28,7 @@ export function BlogPost(): React.JSX.Element {
         <Link className="blog-back" to="/blog">
           ← All posts
         </Link>
+        <BlogCover slug={post.slug} size="lg" />
         <div className="blog-meta blog-meta-top">
           <span className="blog-date">{post.date}</span>
           <span className="blog-readtime">⏱ {post.readTime}</span>
