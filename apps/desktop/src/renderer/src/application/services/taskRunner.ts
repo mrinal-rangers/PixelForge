@@ -2,6 +2,8 @@ import type { CompletionReport, TaskRecord } from '@shared/types'
 import { useTaskStore } from '../state/taskStore'
 import { useOfficeStore } from '../state/officeStore'
 import { memoryBlockForTask, captureTaskMemory, rememberAnswer } from './memoryEngine'
+import { recordMessage } from './messageEngine'
+import { conversationIdForTask, USER_ID } from '@shared/rules/message'
 
 /**
  * Task orchestration. Composes the pure task store with terminal I/O and the
@@ -54,6 +56,18 @@ export function startTask(id: string): void {
   if (!record?.assignedAgentId) {
     return
   }
+  void recordMessage({
+    conversationId: conversationIdForTask(id),
+    senderId: useOfficeStore.getState().managerId ?? USER_ID,
+    recipientId: record.assignedAgentId,
+    kind: 'assignment',
+    priority: record.priority,
+    text: `Task [${record.id}]: ${record.title}\n\n${record.instructions}${
+      record.requirements ? `\n\nCompletion requirements:\n${record.requirements}` : ''
+    }`,
+    taskId: id,
+    projectPath: record.projectPath
+  })
   const delivered = writeToAgent(record.assignedAgentId, assignmentMessage(record))
   if (!delivered) {
     useTaskStore.getState().notify(
@@ -74,6 +88,16 @@ export function answerQuestion(id: string, questionId: number, answer: string): 
   const agentId = task.assignedAgentId
   useTaskStore.getState().answerQuestion(id, questionId, answer)
   if (agentId) {
+    void recordMessage({
+      conversationId: conversationIdForTask(id),
+      replyToId: undefined,
+      senderId: USER_ID,
+      recipientId: agentId,
+      kind: 'answer',
+      text: answer,
+      taskId: id,
+      projectPath: task.projectPath
+    })
     writeToAgent(agentId, answer)
   }
   if (question) {

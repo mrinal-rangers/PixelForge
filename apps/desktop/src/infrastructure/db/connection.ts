@@ -48,6 +48,25 @@ export function open(): DatabaseSync {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS conversations (
+      id TEXT PRIMARY KEY,
+      json TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      json TEXT NOT NULL,
+      conversation_id TEXT NOT NULL,
+      sender_id TEXT NOT NULL,
+      recipient_id TEXT,
+      status TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      task_id TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
   `)
   return db
 }

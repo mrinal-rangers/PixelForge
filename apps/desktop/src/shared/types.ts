@@ -364,6 +364,7 @@ export type MemorySource =
   | { kind: 'terminal'; sessionId?: string }
   | { kind: 'memory' }
   | { kind: 'manual' }
+  | { kind: 'message'; conversationId: string }
 
 export interface MemoryRevision {
   id: number
@@ -430,6 +431,113 @@ export interface NewMemoryInput {
   conflictOf?: string
 }
 
+export type MessageKind =
+  | 'assignment'
+  | 'information'
+  | 'progress'
+  | 'finding'
+  | 'review'
+  | 'handoff'
+  | 'blocker'
+  | 'answer'
+  | 'system'
+  | 'announcement'
+
+export type MessagePriority = 'low' | 'medium' | 'high' | 'urgent'
+
+export type MessageStatus =
+  | 'draft'
+  | 'queued'
+  | 'delivered'
+  | 'read'
+  | 'acknowledged'
+  | 'replied'
+  | 'processed'
+  | 'failed'
+
+export type MessageDelivery =
+  | 'outbox'
+  | 'inbox'
+  | 'queued'
+  | 'failed'
+
+export interface MessageReference {
+  kind:
+    | 'file'
+    | 'directory'
+    | 'commit'
+    | 'branch'
+    | 'task'
+    | 'goal'
+    | 'memory'
+    | 'test'
+    | 'session'
+    | 'log'
+  label: string
+  /** Project-relative or absolute path for file/directory/commit/branch/log/test. */
+  path?: string
+  /** Id for task/goal/memory/session references. */
+  id?: string
+}
+
+export interface MessageRecord {
+  id: string
+  conversationId: string
+  replyToId?: string
+  senderId: string
+  recipientId?: string
+  recipients?: string[]
+  kind: MessageKind
+  priority: MessagePriority
+  text: string
+  taskId?: string
+  goalId?: string
+  projectPath?: string
+  references: MessageReference[]
+  status: MessageStatus
+  urgent: boolean
+  retries: number
+  createdAt: number
+  updatedAt: number
+  deliveredAt?: number
+  readAt?: number
+  acknowledgedAt?: number
+  repliedAt?: number
+  processedAt?: number
+}
+
+export type ConversationKind = 'task' | 'goal' | 'direct' | 'announcement' | 'system'
+export type ConversationStatus = 'open' | 'paused' | 'closed'
+
+export interface ConversationRecord {
+  id: string
+  kind: ConversationKind
+  participants: string[]
+  taskId?: string
+  goalId?: string
+  projectPath?: string
+  title?: string
+  status: ConversationStatus
+  createdAt: number
+  updatedAt: number
+}
+
+export interface NewMessageInput {
+  conversationId: string
+  replyToId?: string
+  senderId: string
+  recipientId?: string
+  recipients?: string[]
+  kind: MessageKind
+  priority?: MessagePriority
+  text: string
+  taskId?: string
+  goalId?: string
+  projectPath?: string
+  references?: MessageReference[]
+  urgent?: boolean
+}
+
 export interface WorkspaceApi {
   getAppInfo(): Promise<AppInfo>
   saveCoworker(config: CoworkerConfig): Promise<void>
@@ -451,6 +559,13 @@ export interface WorkspaceApi {
   memoryRemove(memoryId: string): Promise<void>
   memoryClear(): Promise<void>
   memoryExport(): Promise<string | null>
+  messageCreate(input: NewMessageInput): Promise<MessageRecord>
+  messageSave(message: MessageRecord): Promise<MessageRecord>
+  messageList(): Promise<MessageRecord[]>
+  messageRemove(messageId: string): Promise<void>
+  conversationCreate(conversation: ConversationRecord): Promise<ConversationRecord>
+  conversationSave(conversation: ConversationRecord): Promise<ConversationRecord>
+  conversationList(): Promise<ConversationRecord[]>
   selectProject(): Promise<string | null>
   selectFiles(): Promise<string[] | null>
   listClis(): Promise<CliInfo[]>

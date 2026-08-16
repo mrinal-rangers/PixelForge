@@ -2,10 +2,14 @@ import { useOfficeStore } from './state/officeStore'
 import { useTaskStore } from './state/taskStore'
 import { useGoalStore } from './state/goalStore'
 import { useMemoryStore } from './state/memoryStore'
+import { useMessageStore } from './state/messageStore'
 import { parseTaskOutput } from './events/taskEvents'
 import { parseGoalOutput } from './events/goalEvents'
 import { parseMemoryOutput } from './events/memoryEvents'
+import { parseMessageOutput } from './events/messageEvents'
 import { startGoalEngine } from './services/goalEngine'
+import { startMessageEngine, recordSystem } from './services/messageEngine'
+import { conversationIdForSystem } from '@shared/rules/message'
 
 export interface ApplicationBootstrapOptions {
   onSessionsLoaded?: () => void
@@ -21,6 +25,10 @@ export function initApplication(options: ApplicationBootstrapOptions = {}): void
       for (const task of tasks) {
         useTaskStore.getState().failTask(task.id, 'The terminal process failed.')
       }
+      recordSystem(
+        conversationIdForSystem(session.id),
+        `${session.name ?? 'Coworker'} stopped with an error${session.error ? `: ${session.error}` : ''}.`
+      )
     } else if (session.status === 'stopped' || session.status === 'completed') {
       for (const task of tasks) {
         useTaskStore.getState().setStatus(task.id, 'todo')
@@ -32,6 +40,12 @@ export function initApplication(options: ApplicationBootstrapOptions = {}): void
             : 'Terminal stopped; task paused'
         )
       }
+      recordSystem(
+        conversationIdForSystem(session.id),
+        session.status === 'completed'
+          ? `${session.name ?? 'Coworker'} finished its session.`
+          : `${session.name ?? 'Coworker'} stopped; queued messages will be delivered when it starts again.`
+      )
     }
   })
 
@@ -40,13 +54,16 @@ export function initApplication(options: ApplicationBootstrapOptions = {}): void
     parseTaskOutput(sessionId, data)
     parseGoalOutput(sessionId, data)
     parseMemoryOutput(sessionId, data)
+    parseMessageOutput(sessionId, data)
   })
 
   void useTaskStore.getState().hydrate()
   void useGoalStore.getState().hydrate()
   void useMemoryStore.getState().hydrate()
+  void useMessageStore.getState().hydrate()
 
   startGoalEngine()
+  startMessageEngine()
 
   window.workspace
     .listSessions()

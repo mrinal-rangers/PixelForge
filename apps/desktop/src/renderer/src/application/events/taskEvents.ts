@@ -1,6 +1,7 @@
 import type { CompletionReport, TaskRecord } from '@shared/types'
 import { useTaskStore } from '../state/taskStore'
 import { completeTask } from '../services/taskRunner'
+import { postTaskMessage } from '../services/messageEngine'
 
 /**
  * Bridge between raw terminal output and the task system.
@@ -123,10 +124,22 @@ function handleStructured(
         next: evt.next ?? []
       }
       completeTask(task.id, report)
+      postTaskMessage(
+        task.id,
+        task.assignedAgentId ?? 'system',
+        'progress',
+        `Task complete${report.summary ? `: ${report.summary}` : ''}${report.files.length > 0 ? ` Files: ${report.files.join(', ')}` : ''}`
+      )
       break
     }
     case 'failed':
       store.failTask(task.id, evt.reason ?? evt.text ?? 'The coworker reported a failure.')
+      postTaskMessage(
+        task.id,
+        task.assignedAgentId ?? 'system',
+        'blocker',
+        `Task blocked: ${evt.reason ?? evt.text ?? 'the coworker reported a failure'}`
+      )
       break
     default:
       break

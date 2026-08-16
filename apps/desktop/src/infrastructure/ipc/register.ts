@@ -17,14 +17,26 @@ import {
   removeMemory,
   saveMemory
 } from '../db/memoryRepo'
+import {
+  createConversation,
+  createMessage,
+  listConversations,
+  listMessages,
+  removeMessage,
+  saveConversation,
+  saveMessage
+} from '../db/messageRepo'
 import type {
   CliInfo,
+  ConversationRecord,
   CreateSessionOptions,
   CoworkerConfig,
   GoalRecord,
   MemoryRecord,
+  MessageRecord,
   NewGoalInput,
   NewMemoryInput,
+  NewMessageInput,
   NewTaskInput,
   TaskRecord
 } from '../../shared/types'
@@ -144,6 +156,26 @@ export function registerIpcHandlers(deps: { sessionManager: SessionManager }): v
     await writeFile(result.filePath, lines.join('\n'), 'utf8')
     return result.filePath
   })
+
+  ipcMain.handle('message:create', (_event, input: NewMessageInput) => createMessage(input))
+
+  ipcMain.handle('message:save', (_event, message: MessageRecord) => saveMessage(message))
+
+  ipcMain.handle('message:list', () => listMessages())
+
+  ipcMain.handle('message:remove', (_event, messageId: string) => {
+    removeMessage(messageId)
+  })
+
+  ipcMain.handle('conversation:create', (_event, conversation: ConversationRecord) =>
+    createConversation(conversation)
+  )
+
+  ipcMain.handle('conversation:save', (_event, conversation: ConversationRecord) =>
+    saveConversation(conversation)
+  )
+
+  ipcMain.handle('conversation:list', () => listConversations())
 
   ipcMain.handle('dialog:selectProject', async () => {
     const result = await dialog.showOpenDialog({
