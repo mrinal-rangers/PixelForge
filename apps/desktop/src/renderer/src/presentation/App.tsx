@@ -11,7 +11,6 @@ import { GemLogo } from './components/GemLogo'
 import { MoonIcon, SunIcon } from './components/ThemeIcon'
 import { SettingsIcon } from './components/ChromeIcon'
 import { useOfficeStore } from '../application/state/officeStore'
-import { useTaskStore } from '../application/state/taskStore'
 import { initApplication } from '../application/bootstrap'
 import { TaskBoard } from './components/TaskBoard'
 import { NotificationHost } from './components/NotificationHost'
@@ -49,14 +48,6 @@ function App(): React.JSX.Element {
 
   const agents = useOfficeStore(useShallow((s) => Object.values(s.agents)))
   const selectedId = useOfficeStore((s) => s.selectedId)
-  const taskCounts = useTaskStore(useShallow((s) => {
-    const list = Object.values(s.tasks)
-    return {
-      total: list.length,
-      needsInput: list.filter((t) => t.status === 'needs-input').length,
-      ongoing: list.filter((t) => t.status === 'ongoing').length
-    }
-  }))
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -144,18 +135,6 @@ function App(): React.JSX.Element {
         </div>
         <div className="header-right">
           <button
-            className={`theme-toggle ${panelView === 'board' ? 'active-toggle' : ''}`}
-            onClick={() => setPanelView((prev) => (prev === 'board' ? 'coworker' : 'board'))}
-            title="Open the shared task board"
-          >
-            <span className="theme-icon" aria-hidden="true">
-              <TasksIcon />
-            </span>
-            {taskCounts.needsInput > 0 && (
-              <span className="task-badge header-task-badge">{taskCounts.needsInput}</span>
-            )}
-          </button>
-          <button
             className="theme-toggle"
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -239,17 +218,6 @@ function App(): React.JSX.Element {
 
       <NotificationHost />
     </div>
-  )
-}
-
-function TasksIcon(): React.JSX.Element {
-  return (
-    <svg className="chrome-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="3" y="3" width="7" height="7" fill="currentColor" />
-      <rect x="14" y="3" width="7" height="7" fill="currentColor" opacity="0.55" />
-      <rect x="3" y="14" width="7" height="7" fill="currentColor" opacity="0.55" />
-      <rect x="14" y="14" width="7" height="7" fill="currentColor" />
-    </svg>
   )
 }
 

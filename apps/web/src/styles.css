@@ -548,15 +548,22 @@ img {
 }
 
 .provider {
+  position: relative;
+  display: inline-block;
+}
+
+.provider-box {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-family: var(--font-mono);
-  font-weight: 700;
-  padding: 0.55rem 1rem;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
   border: 2px solid var(--border-strong);
   background: var(--bg-deep);
   box-shadow: var(--shadow);
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease;
   clip-path: polygon(
     var(--pixel-notch) 0,
     100% 0,
@@ -567,25 +574,75 @@ img {
   );
 }
 
+.provider:hover .provider-box {
+  transform: translateY(-2px);
+  border-color: var(--amber-dark);
+}
+
 .provider-icon {
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
-.provider-tag {
-  font-size: 0.66rem;
-  font-weight: 400;
-  color: var(--text-faint);
-  border-left: 1px solid var(--border-strong);
-  padding-left: 0.5rem;
+.provider-tip {
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  padding: 0.32rem 0.65rem;
+  box-shadow: var(--shadow);
+  z-index: 6;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+}
+
+.provider-tip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--border-strong);
+}
+
+.provider:hover .provider-tip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .provider-more {
-  color: var(--text-faint);
+  display: inline-flex;
+  align-items: center;
+  height: 52px;
+  padding: 0 1rem;
+  font-family: var(--font-mono);
   font-weight: 400;
-  border-style: dashed;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  border: 2px dashed var(--border-strong);
+  background: var(--bg-deep);
+  box-shadow: var(--shadow);
+  clip-path: polygon(
+    var(--pixel-notch) 0,
+    100% 0,
+    100% calc(100% - var(--pixel-notch)),
+    calc(100% - var(--pixel-notch)) 100%,
+    0 100%,
+    0 var(--pixel-notch)
+  );
 }
 
 .providers-note {

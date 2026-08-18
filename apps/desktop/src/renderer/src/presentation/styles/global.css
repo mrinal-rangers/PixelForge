@@ -21,6 +21,7 @@
   --text-dim: #9aa6cf;
   --accent: #3a9dff;
   --accent-dim: #6bb8ff;
+  --accent-soft: rgba(58, 157, 255, 0.18);
   --yellow: #ffcc33;
   --red: #ff4d5e;
   --red-dark: #7a1620;
@@ -38,10 +39,11 @@
   --bg-input: #fffaf0;
   --border: #6b5d43;
   --border-strong: #4a4030;
-  --text: #2c2620;
-  --text-dim: #77694f;
+  --text: #000000;
+  --text-dim: #4a443a;
   --accent: #1d6fd1;
   --accent-dim: #4a92e8;
+  --accent-soft: rgba(29, 111, 209, 0.15);
   --yellow: #e8a600;
   --red: #e23b4a;
   --red-dark: #8f1f2a;
@@ -68,7 +70,7 @@ body,
 
 body {
   font-family: 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
-  font-size: 13px;
+  font-size: 16px;
   background-color: var(--bg);
   background-image:
     linear-gradient(var(--grid-line) 1px, transparent 1px),
@@ -127,7 +129,7 @@ button {
 
 .app-header h1 {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 400;
   letter-spacing: 1px;
   color: var(--text);
@@ -135,7 +137,7 @@ button {
 
 .header-version {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
   letter-spacing: 0.5px;
   margin-left: 4px;
@@ -161,7 +163,7 @@ button {
   box-shadow: 0 3px 0 var(--shadow);
   cursor: pointer;
   padding: 0;
-  font-size: 14px;
+  font-size: 17px;
   transition: transform 0.05s, box-shadow 0.05s, border-color 0.1s;
 }
 
@@ -187,7 +189,6 @@ button {
 .theme-icon svg {
   width: 18px;
   height: 18px;
-  image-rendering: pixelated;
 }
 
 .session-meta {
@@ -197,7 +198,7 @@ button {
 }
 
 .meta-item {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   max-width: 240px;
   overflow: hidden;
@@ -207,7 +208,7 @@ button {
 
 .status-badge {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -290,7 +291,7 @@ button {
   gap: 8px;
   color: var(--text-dim);
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 9px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -312,7 +313,7 @@ button {
   border: 3px solid var(--border);
   background: var(--bg);
   box-shadow: 0 2px 0 var(--shadow);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
   flex-shrink: 0;
 }
@@ -351,7 +352,7 @@ button {
 
 .about-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 28px;
+  font-size: 34px;
   font-weight: 400;
   letter-spacing: 2px;
   color: var(--text);
@@ -360,13 +361,13 @@ button {
 
 .about-tagline {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--accent);
   text-transform: uppercase;
 }
 
 .about-body {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--text-dim);
   line-height: 1.7;
   max-width: 520px;
@@ -386,7 +387,7 @@ button {
 .feature-list li {
   display: flex;
   gap: 10px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   padding: 8px 12px;
   background: var(--bg-raised);
@@ -408,7 +409,7 @@ button {
 
 .section-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 400;
   color: var(--text);
   text-transform: uppercase;
@@ -416,13 +417,13 @@ button {
 }
 
 .section-desc {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-dim);
 }
 
 .subsection-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--accent);
   text-transform: uppercase;
@@ -445,7 +446,7 @@ button {
   color: var(--text);
   padding: 9px 12px;
   font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 13px;
+  font-size: 16px;
   box-shadow: inset 0 2px 0 var(--shadow);
 }
 
@@ -455,7 +456,7 @@ button {
 }
 
 .path-hint {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--accent);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -514,7 +515,7 @@ button {
 
 .tile-name {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text);
   letter-spacing: 0.5px;
   line-height: 1.5;
@@ -528,13 +529,13 @@ button {
 }
 
 .tile-checking {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--accent);
   animation: blink 1s steps(2, start) infinite;
 }
 
 .tile-hint {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -548,7 +549,7 @@ button {
 
 .cli-badge {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -574,7 +575,7 @@ button {
   color: #fff;
   flex-shrink: 0;
   padding: 8px 12px;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .install-log {
@@ -585,7 +586,7 @@ button {
   color: var(--green);
   border: 2px solid var(--border);
   padding: 6px 8px;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-all;
@@ -593,14 +594,14 @@ button {
 }
 
 .install-notes {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
 }
 
 .install-notes summary {
   cursor: pointer;
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -620,7 +621,7 @@ button {
   color: #fff;
   border-radius: 2px;
   padding: 10px 14px;
-  font-size: 12px;
+  font-size: 14px;
   box-shadow: 0 3px 0 var(--shadow);
 }
 
@@ -628,7 +629,7 @@ button {
 
 .btn {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   background: var(--bg-card);
@@ -767,7 +768,7 @@ button {
 
 .office-toolbar-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
   letter-spacing: 1px;
 }
@@ -779,7 +780,7 @@ button {
 
 .office-zoom-btn {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--text-dim);
@@ -859,7 +860,7 @@ button {
   display: flex;
   align-items: center;
   gap: 16px;
-  font-size: 10px;
+  font-size: 12px;
   font-family: 'PressStart', 'Courier New', monospace;
   letter-spacing: 0.5px;
   color: var(--text-dim);
@@ -872,7 +873,7 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .session-bar-actions {
@@ -950,7 +951,6 @@ button {
 .chrome-svg {
   width: 18px;
   height: 18px;
-  image-rendering: pixelated;
 }
 
 .icon-btn {
@@ -967,7 +967,7 @@ button {
   align-items: center;
   gap: 8px;
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.5px;
   color: var(--text-dim);
   background: var(--bg-card);
@@ -1024,7 +1024,7 @@ button {
   gap: 8px;
   width: 100%;
   text-align: left;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   background: transparent;
   border: none;
@@ -1039,19 +1039,19 @@ button {
 .setting-on {
   color: var(--green);
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .setting-off {
   color: var(--text-dim);
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .setting-link {
   color: var(--accent);
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   text-transform: uppercase;
 }
 
@@ -1097,7 +1097,7 @@ button {
 
 .settings-row-label {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.5px;
   color: var(--text-dim);
   flex-shrink: 0;
@@ -1107,7 +1107,7 @@ button {
 
 .settings-row-value {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   word-break: break-all;
 }
@@ -1155,7 +1155,7 @@ button {
 
 .wizard-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 400;
   letter-spacing: 1px;
   color: var(--text);
@@ -1182,7 +1182,7 @@ button {
 .btn-icon-small {
   width: 20px;
   height: 20px;
-  font-size: 12px;
+  font-size: 14px;
   border-width: 2px;
   box-shadow: none;
 }
@@ -1193,7 +1193,7 @@ button {
 }
 
 .stepper-label {
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .wizard-body {
@@ -1217,7 +1217,7 @@ button {
 
 .field-label {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1236,11 +1236,11 @@ button {
 }
 
 .mono {
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .btn-small {
-  font-size: 8px;
+  font-size: 10px;
   padding: 9px 12px;
 }
 
@@ -1252,7 +1252,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   cursor: pointer;
 }
@@ -1298,7 +1298,7 @@ button {
 
 .avatar-name {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 6px;
+  font-size: 7px;
   color: var(--text-dim);
 }
 
@@ -1332,7 +1332,7 @@ button {
 
 .project-option {
   text-align: left;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   background: var(--bg-raised);
   border: 2px solid var(--border);
@@ -1414,7 +1414,7 @@ button {
 
 .template-name {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.5px;
   color: var(--text);
   text-align: center;
@@ -1422,7 +1422,7 @@ button {
 
 .engine-name {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text);
 }
 
@@ -1437,14 +1437,14 @@ button {
 
 .command-preview-label {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   color: var(--text-dim);
   letter-spacing: 0.5px;
 }
 
 .command-line {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--green);
   word-break: break-all;
   white-space: pre-wrap;
@@ -1488,7 +1488,7 @@ button {
 
 .cc-name {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text);
   text-align: center;
   word-break: break-word;
@@ -1496,7 +1496,7 @@ button {
 
 .cc-role {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   color: var(--accent);
   text-transform: uppercase;
   text-align: center;
@@ -1504,7 +1504,7 @@ button {
 }
 
 .cc-engine {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   text-align: center;
   word-break: break-word;
@@ -1515,7 +1515,7 @@ button {
   align-items: center;
   gap: 6px;
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   color: var(--text-dim);
   cursor: pointer;
   margin-top: 6px;
@@ -1545,7 +1545,7 @@ button {
 }
 
 .cc-session-meta {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1564,7 +1564,7 @@ button {
 .cc-tab {
   position: relative;
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--text-dim);
@@ -1573,18 +1573,18 @@ button {
   border-bottom: none;
   padding: 7px 9px 8px;
   cursor: pointer;
-  transition: color 0.1s, border-color 0.1s;
+  transition: background 0.1s, border-color 0.1s;
 }
 
 .cc-tab:hover {
-  color: var(--text);
+  background: var(--accent-soft);
   border-color: var(--accent);
 }
 
 .cc-tab.active {
-  color: var(--yellow);
-  border-color: var(--yellow);
-  background: var(--bg);
+  background: var(--accent-soft);
+  border-color: var(--border);
+  border-bottom: 3px solid var(--accent);
 }
 
 .cc-badge {
@@ -1597,7 +1597,7 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 7px;
+  font-size: 8px;
   color: #fff;
   background: var(--red);
   border: 2px solid var(--bg);
@@ -1666,18 +1666,18 @@ button {
 }
 
 .cc-empty-glyph {
-  font-size: 40px;
+  font-size: 48px;
   line-height: 1;
 }
 
 .cc-placeholder {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   text-align: center;
 }
 
 .cc-scaffold-hint {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   opacity: 0.7;
   text-align: center;
@@ -1702,13 +1702,13 @@ button {
 
 .monitor-label {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   color: var(--text-dim);
   letter-spacing: 0.5px;
 }
 
 .monitor-value {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--text);
   word-break: break-word;
 }
@@ -1728,7 +1728,7 @@ button {
 }
 
 .activity-line {
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.5;
   color: var(--text-dim);
   word-break: break-word;
@@ -1759,7 +1759,7 @@ button {
 }
 
 .task-text {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   flex: 1;
 }
@@ -1769,7 +1769,7 @@ button {
 }
 
 .memory-text {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   flex: 1;
   min-width: 0;
@@ -1777,14 +1777,14 @@ button {
 }
 
 .memory-ts {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
   flex-shrink: 0;
 }
 
 .memory-agent {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   color: var(--accent);
   border: 2px solid var(--border);
   padding: 2px 6px;
@@ -1821,7 +1821,7 @@ button {
 
 .queue-badge {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   color: var(--text-dim);
   border: 2px solid var(--border);
   padding: 2px 5px;
@@ -1829,14 +1829,14 @@ button {
 }
 
 .queue-text {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   flex: 1;
   word-break: break-word;
 }
 
 .queue-ts {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
   flex-shrink: 0;
 }
@@ -1850,11 +1850,11 @@ button {
   gap: 8px;
   color: var(--text-dim);
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .graph-placeholder span {
-  font-size: 32px;
+  font-size: 38px;
 }
 
 .worker-list {
@@ -1879,12 +1879,12 @@ button {
 }
 
 .worker-name {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
 }
 
 .worker-status {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
 }
 
@@ -1901,7 +1901,7 @@ button {
 
 .not-started-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--yellow);
 }
 
@@ -1912,7 +1912,7 @@ button {
   right: 14px;
   bottom: 14px;
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.5px;
   color: var(--accent);
   background: var(--bg-card);
@@ -1945,7 +1945,7 @@ button {
 
 .roster-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
   letter-spacing: 1px;
   flex-shrink: 0;
@@ -2015,7 +2015,7 @@ button {
 
 .roster-name {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text);
   max-width: 110px;
   overflow: hidden;
@@ -2024,7 +2024,7 @@ button {
 }
 
 .roster-role {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
   max-width: 110px;
   overflow: hidden;
@@ -2048,7 +2048,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
   color: var(--red);
   background: var(--bg);
@@ -2069,7 +2069,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1;
   color: var(--text-dim);
   background: var(--bg);
@@ -2091,7 +2091,7 @@ button {
   align-items: center;
   justify-content: center;
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 400;
   color: #fff;
   background: var(--yellow);
@@ -2115,14 +2115,14 @@ button {
 
 .roster-edit-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
   margin-right: 4px;
 }
 
 .roster-edit .text-input {
   padding: 6px 8px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .roster-add {
@@ -2130,7 +2130,7 @@ button {
   align-items: center;
   gap: 6px;
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text);
   background: var(--bg-card);
   border: 3px solid var(--border);
@@ -2199,7 +2199,7 @@ button {
 
 .cc-role-badge {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--accent);
@@ -2214,7 +2214,7 @@ button {
 }
 
 .cc-description {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   line-height: 1.45;
   word-break: break-word;
@@ -2222,7 +2222,7 @@ button {
 
 .cc-header-row .cc-engine {
   text-align: left;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .cc-engine-sep {
@@ -2260,7 +2260,7 @@ button {
 }
 
 .cc-confirm-text {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   line-height: 1.45;
 }
@@ -2284,7 +2284,7 @@ button {
 .cc-message-tool {
   flex-shrink: 0;
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   letter-spacing: 0.5px;
   color: var(--text-dim);
   background: var(--bg-card);
@@ -2323,7 +2323,7 @@ button {
 
 .git-label {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   color: var(--text-dim);
   letter-spacing: 0.5px;
   flex-shrink: 0;
@@ -2331,7 +2331,7 @@ button {
 
 .git-value {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--green);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2354,7 +2354,7 @@ button {
 
 .trace-label {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   color: var(--text-dim);
   letter-spacing: 0.5px;
 }
@@ -2363,7 +2363,7 @@ button {
   display: grid;
   grid-template-columns: 90px 1fr;
   gap: 4px 10px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .trace-grid span {
@@ -2378,7 +2378,7 @@ button {
 
 .trace-pre {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   background: var(--terminal-bg);
   border: 2px solid var(--border);
@@ -2424,7 +2424,7 @@ button {
 }
 
 .monitor-name {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   flex: 1;
   min-width: 0;
@@ -2435,7 +2435,7 @@ button {
 
 .monitor-state {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   text-transform: uppercase;
   color: var(--text-dim);
   flex-shrink: 0;
@@ -2451,7 +2451,7 @@ button {
 
 .task-subtab {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-dim);
@@ -2502,7 +2502,7 @@ button {
 }
 
 .task-text {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   flex: 1;
   word-break: break-word;
@@ -2538,12 +2538,12 @@ button {
 
 .command-card-name {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text);
 }
 
 .command-card-hint {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
   line-height: 1.4;
 }
@@ -2557,7 +2557,7 @@ button {
 
 .memory-view-btn {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-dim);
@@ -2589,7 +2589,7 @@ button {
 
 .memory-mode-chip {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 6px;
+  font-size: 7px;
   text-transform: uppercase;
   color: var(--text-dim);
   border: 1px solid var(--border);
@@ -2601,7 +2601,7 @@ button {
   flex: 1;
   min-width: 0;
   font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
@@ -2628,7 +2628,7 @@ button {
 
 .task-board-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 1px;
   color: var(--text);
 }
@@ -2671,7 +2671,7 @@ button {
 
 .task-column-label {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.5px;
   color: var(--text);
   text-transform: uppercase;
@@ -2679,7 +2679,7 @@ button {
 
 .task-column-count {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-dim);
   margin-left: auto;
 }
@@ -2695,7 +2695,7 @@ button {
 }
 
 .task-column-empty {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   text-align: center;
   padding: 12px 0;
@@ -2754,7 +2754,7 @@ button {
 }
 
 .task-card-title {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
   flex: 1;
@@ -2775,14 +2775,14 @@ button {
 }
 
 .task-card-unassigned {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .task-card-project {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2790,7 +2790,7 @@ button {
 }
 
 .task-card-progress {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2807,7 +2807,7 @@ button {
 
 .task-badge {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   color: var(--text-dim);
   background: var(--bg-raised);
   border: 2px solid var(--border);
@@ -2827,7 +2827,7 @@ button {
 
 .task-priority {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   padding: 3px 5px;
   border: 2px solid var(--border);
   text-transform: uppercase;
@@ -2938,7 +2938,7 @@ button {
 
 .task-details-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   flex: 1;
   min-width: 0;
@@ -2970,7 +2970,7 @@ button {
 
 .task-block-label {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.5px;
   color: var(--text-dim);
   text-transform: uppercase;
@@ -2978,7 +2978,7 @@ button {
 
 .task-block-sub {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.5px;
   color: var(--accent);
   text-transform: uppercase;
@@ -2986,7 +2986,7 @@ button {
 }
 
 .task-brief-text {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   line-height: 1.5;
   white-space: pre-wrap;
@@ -2998,7 +2998,7 @@ button {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 6px 12px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .task-meta-grid span {
@@ -3007,7 +3007,7 @@ button {
 
 .task-mono {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   word-break: break-all;
 }
@@ -3017,7 +3017,7 @@ button {
 }
 
 .task-dep-link {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--yellow);
   background: none;
   border: none;
@@ -3048,18 +3048,18 @@ button {
 }
 
 .task-coworker-name {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text);
 }
 
 .task-coworker-role {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
 }
 
 .task-coworker-engine {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
 }
 
@@ -3073,13 +3073,13 @@ button {
 }
 
 .task-question-need {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   line-height: 1.5;
 }
 
 .task-question-sub {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   line-height: 1.4;
   margin: 0;
@@ -3092,7 +3092,7 @@ button {
 }
 
 .task-choice {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--accent);
 }
 
@@ -3105,7 +3105,7 @@ button {
 }
 
 .task-progress-line {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
 }
 
@@ -3119,7 +3119,7 @@ button {
   display: flex;
   gap: 8px;
   align-items: baseline;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .task-event-ts {
@@ -3132,7 +3132,7 @@ button {
   flex-shrink: 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -3167,7 +3167,7 @@ button {
 
 .task-file {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--accent);
   word-break: break-all;
 }
@@ -3202,7 +3202,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   background: var(--bg-raised);
   border: 2px solid var(--border);
@@ -3221,14 +3221,14 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   cursor: pointer;
 }
 
 .task-dep-status {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   text-transform: uppercase;
   flex-shrink: 0;
 }
@@ -3260,7 +3260,7 @@ button {
 }
 
 .task-warn {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--yellow);
   margin-top: 4px;
 }
@@ -3319,7 +3319,7 @@ button {
 
 .modal-header h2 {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
   letter-spacing: 1px;
   color: var(--text);
@@ -3380,7 +3380,7 @@ button {
 
 .toast-kind {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 7px;
+  font-size: 8px;
   letter-spacing: 1px;
   text-transform: uppercase;
 }
@@ -3402,13 +3402,13 @@ button {
 }
 
 .toast-title {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
 }
 
 .toast-detail {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3468,7 +3468,7 @@ button {
   align-items: center;
   gap: 6px;
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text);
   cursor: pointer;
 }
@@ -3507,7 +3507,7 @@ button {
 
 .goal-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   letter-spacing: 0.5px;
 }
@@ -3516,7 +3516,7 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
 }
 
@@ -3524,7 +3524,7 @@ button {
   margin: 0;
   white-space: pre-wrap;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--text-dim);
   background: var(--bg-raised);
@@ -3555,7 +3555,7 @@ button {
 }
 
 .goal-progress-label {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
   white-space: nowrap;
 }
@@ -3574,7 +3574,7 @@ button {
 
 .goal-state-glyph {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 18px;
+  font-size: 22px;
   color: var(--accent-dim);
 }
 
@@ -3587,7 +3587,7 @@ button {
 
 .goal-section-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 1px;
   color: var(--accent-dim);
   display: flex;
@@ -3596,19 +3596,19 @@ button {
 }
 
 .goal-section-title.small {
-  font-size: 9px;
+  font-size: 11px;
   margin-top: 6px;
   color: var(--text-dim);
 }
 
 .goal-note {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--accent-dim);
 }
 
 .goal-understanding {
   margin: 0;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--text);
   background: var(--bg-raised);
@@ -3641,7 +3641,7 @@ button {
 
 .plan-task-index {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--accent-dim);
   width: 16px;
   flex: none;
@@ -3667,7 +3667,7 @@ button {
 
 .plan-task-reason {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   font-style: italic;
 }
@@ -3680,7 +3680,7 @@ button {
 }
 
 .plan-task-deps-label {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
   font-family: 'PressStart', 'Courier New', monospace;
 }
@@ -3693,7 +3693,7 @@ button {
 }
 
 .plan-risk-item {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   background: var(--bg-raised);
   border-left: 3px solid var(--yellow, #ffcc33);
@@ -3703,7 +3703,7 @@ button {
 
 .goal-criteria {
   margin: 0;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   background: var(--bg-raised);
   border: 2px solid var(--border);
@@ -3734,13 +3734,13 @@ button {
 
 .dash-stat-value {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 16px;
+  font-size: 19px;
   color: var(--accent-dim);
 }
 
 .dash-stat-label {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 1px;
   color: var(--text-dim);
 }
@@ -3755,7 +3755,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 13px;
   background: var(--bg-raised);
   border-left: 3px solid var(--orange, #ffb14d);
   padding: 6px 8px;
@@ -3764,7 +3764,7 @@ button {
 
 .retry-action {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--orange, #ffb14d);
   text-transform: uppercase;
 }
@@ -3775,7 +3775,7 @@ button {
 }
 
 .retry-ts {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
@@ -3797,7 +3797,7 @@ button {
 
 .askme-question {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
 }
 
@@ -3807,13 +3807,13 @@ button {
 .askme-consequence,
 .askme-answered {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
 }
 
 .askme-waiting {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--yellow, #ffcc33);
 }
 
@@ -3839,7 +3839,7 @@ button {
 }
 
 .goal-report-summary {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   background: var(--bg-raised);
   border: 2px solid var(--border);
@@ -3851,7 +3851,7 @@ button {
   margin: 0;
   white-space: pre-wrap;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--text-dim);
   background: var(--bg-raised);
@@ -3865,7 +3865,7 @@ button {
   padding: 1px 5px;
   margin-left: 6px;
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 1px;
   color: #141a2e;
   background: #ffd95a;
@@ -3880,7 +3880,7 @@ button {
 
 .roster-task {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--accent-dim);
   white-space: nowrap;
   overflow: hidden;
@@ -3914,7 +3914,7 @@ button {
 
 .memory-chip {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 1px;
   padding: 3px 7px;
   color: var(--text-dim);
@@ -3970,13 +3970,13 @@ button {
 
 .memory-card-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text);
   flex: 1;
 }
 
 .memory-card-snippet {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   line-height: 1.4;
 }
@@ -3985,13 +3985,13 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 10px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
 .memory-type-badge {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 1px;
   padding: 1px 5px;
   border-radius: 3px;
@@ -4005,7 +4005,7 @@ button {
 .memory-meta-item.confidence-low { color: var(--text-dim); }
 
 .memory-flag {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
@@ -4019,7 +4019,7 @@ button {
 }
 
 .memory-tag {
-  font-size: 9px;
+  font-size: 11px;
   padding: 1px 6px;
   background: var(--bg-raised);
   border: 1px solid var(--border);
@@ -4028,7 +4028,7 @@ button {
 }
 
 .memory-export-note {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--accent-dim);
   margin: 4px 0;
 }
@@ -4048,7 +4048,7 @@ button {
 
 .memory-detail-title {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
 }
 
@@ -4056,7 +4056,7 @@ button {
   margin: 0;
   white-space: pre-wrap;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--text);
   background: var(--bg-raised);
@@ -4079,18 +4079,18 @@ button {
 
 .memory-detail-label {
   font-family: 'PressStart', 'Courier New', monospace;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 1px;
   color: var(--text-dim);
 }
 
 .memory-detail-value {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
 }
 
 .memory-detail-link {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   display: flex;
   align-items: center;
@@ -4102,7 +4102,7 @@ button {
 }
 
 .memory-conflict-banner {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   background: var(--bg-raised);
   border: 2px solid var(--orange, #ffb14d);
@@ -4112,7 +4112,7 @@ button {
 }
 
 .memory-secret-warning {
-  font-size: 11px;
+  font-size: 13px;
   color: #ff5c5c;
   background: var(--bg-raised);
   border: 2px solid #ff5c5c;
@@ -4134,7 +4134,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   background: var(--bg-raised);
   border-left: 3px solid var(--border);
@@ -4199,7 +4199,7 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 6px 12px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
 }
 
@@ -4231,7 +4231,7 @@ button {
 }
 
 .msgs-empty-glyph {
-  font-size: 28px;
+  font-size: 34px;
   opacity: 0.5;
 }
 
@@ -4271,14 +4271,14 @@ button {
 .msgs-item-title {
   flex: 1;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .msgs-item-last {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4293,7 +4293,7 @@ button {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
@@ -4314,7 +4314,7 @@ button {
   border-radius: 9px;
   background: var(--accent);
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -4323,7 +4323,7 @@ button {
 }
 
 .conv-tag {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.5px;
   padding: 2px 5px;
@@ -4354,13 +4354,13 @@ button {
 
 .conv-paused {
   color: var(--red);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .conv-closed {
   color: var(--text-dim);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -4401,7 +4401,7 @@ button {
 
 .msgs-thread-title {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .msgs-thread-tools {
@@ -4433,7 +4433,7 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -4455,7 +4455,7 @@ button {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .msg-sender {
@@ -4467,7 +4467,7 @@ button {
 }
 
 .msg-kind {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -4491,14 +4491,14 @@ button {
 
 .msg-urgent {
   color: var(--red);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .msg-ts {
   margin-left: auto;
   color: var(--text-dim);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .msg-task-link {
@@ -4506,7 +4506,7 @@ button {
   border: none;
   color: var(--accent-dim);
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
   padding: 0;
   margin-top: 4px;
@@ -4521,7 +4521,7 @@ button {
   white-space: pre-wrap;
   word-break: break-word;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
   margin-top: 6px;
   color: var(--text);
@@ -4536,7 +4536,7 @@ button {
 }
 
 .msg-ref {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
   background: var(--bg-input);
   border: 1px solid var(--border);
@@ -4550,7 +4550,7 @@ button {
   align-items: center;
   gap: 8px;
   margin-top: 6px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .msg-status-badge {
@@ -4590,7 +4590,7 @@ button {
 .msg-route-select {
   width: auto;
   max-width: 150px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .msgs-composer {
@@ -4635,7 +4635,7 @@ button {
 
 .askme-message {
   flex: 1;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4671,7 +4671,7 @@ button {
   border: 1px solid var(--border);
   color: var(--text-dim);
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   padding: 5px 10px;
   border-radius: 4px;
   cursor: pointer;
@@ -4702,7 +4702,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   cursor: pointer;
 }
@@ -4742,7 +4742,7 @@ button {
   border-bottom: 1px solid var(--border);
   color: var(--text);
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   padding: 6px 8px;
   cursor: pointer;
 }
@@ -4769,7 +4769,7 @@ button {
 }
 
 .graph-insight-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--accent-dim);
@@ -4779,7 +4779,7 @@ button {
 .graph-insight-text {
   flex: 1;
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
@@ -4807,7 +4807,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
   background: rgba(10, 13, 22, 0.8);
   border: 1px solid var(--border);
@@ -4823,7 +4823,7 @@ button {
   padding: 8px 10px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-raised);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
@@ -4834,7 +4834,7 @@ button {
 }
 
 .graph-legend-title {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--accent-dim);
@@ -4898,7 +4898,7 @@ button {
 }
 
 .graph-detail-glyph {
-  font-size: 26px;
+  font-size: 31px;
   opacity: 0.5;
 }
 
@@ -4918,13 +4918,13 @@ button {
 .graph-node-detail-title {
   flex: 1;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   word-break: break-word;
 }
 
 .graph-node-detail-type {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--accent-dim);
@@ -4938,7 +4938,7 @@ button {
 }
 
 .graph-detail-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--text-dim);
@@ -4946,7 +4946,7 @@ button {
 
 .graph-detail-value {
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
@@ -4959,7 +4959,7 @@ button {
 }
 
 .graph-detail-note {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
@@ -4991,7 +4991,7 @@ button {
   border: 1px solid var(--border);
   color: var(--text);
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   padding: 5px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -5008,7 +5008,7 @@ button {
 }
 
 .graph-neighbour-rel {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   flex-shrink: 0;
 }

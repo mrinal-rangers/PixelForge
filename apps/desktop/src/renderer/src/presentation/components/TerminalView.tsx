@@ -23,7 +23,7 @@ export function TerminalView({ sessionId, onResize }: TerminalViewProps): React.
 
     const term = new Terminal({
       cursorBlink: true,
-      fontSize: 13,
+      fontSize: 16,
       fontFamily: '"SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
       theme: {
         background: '#0f1115',
