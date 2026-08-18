@@ -11,6 +11,7 @@ import { startGoalEngine } from './services/goalEngine'
 import { startMessageEngine, recordSystem } from './services/messageEngine'
 import { startGraphEngine } from './services/graphService'
 import { conversationIdForSystem } from '@shared/rules/message'
+import type { CreateSessionOptions } from '@shared/types'
 
 export interface ApplicationBootstrapOptions {
   onSessionsLoaded?: () => void
@@ -85,6 +86,43 @@ export function initApplication(options: ApplicationBootstrapOptions = {}): void
     .listCoworkers()
     .then((configs) => {
       useOfficeStore.getState().hydrateCoworkers(configs)
+      const live = new Set<string>()
+      void window.workspace
+        .listSessions()
+        .then((sessions) => {
+          for (const session of sessions) {
+            live.add(session.id)
+          }
+          for (const config of configs) {
+            if (!config.cliId || !config.projectPath || live.has(config.id)) {
+              continue
+            }
+            const options: CreateSessionOptions = {
+              id: config.id,
+              projectPath: config.projectPath,
+              cliId: config.cliId,
+              name: config.name,
+              role: config.role,
+              description: config.description,
+              goal: config.goal,
+              avatarId: config.avatarId,
+              accent: config.accent,
+              autoMode: config.autoMode,
+              resumeSessionId: config.resumeSessionId
+            }
+            void window.workspace
+              .createSession(options)
+              .then(({ sessionId }) => {
+                useOfficeStore.getState().requestFocus(sessionId)
+              })
+              .catch(() => {
+                // CLI may no longer be installed; the coworker stays as a draft
+              })
+          }
+        })
+        .catch(() => {
+          // best-effort resume
+        })
     })
     .catch(() => {
       // coworker configs are best-effort on startup

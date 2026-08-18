@@ -71,6 +71,7 @@ body,
 body {
   font-family: 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
   font-size: 16px;
+  font-weight: 600;
   background-color: var(--bg);
   background-image:
     linear-gradient(var(--grid-line) 1px, transparent 1px),
@@ -130,7 +131,7 @@ button {
 .app-header h1 {
   font-family: 'PressStart', 'Courier New', monospace;
   font-size: 18px;
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: 1px;
   color: var(--text);
 }
@@ -187,8 +188,8 @@ button {
 }
 
 .theme-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 .session-meta {
@@ -209,7 +210,7 @@ button {
 .status-badge {
   font-family: 'PressStart', 'Courier New', monospace;
   font-size: 11px;
-  font-weight: 400;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 4px 10px;
@@ -314,7 +315,7 @@ button {
   background: var(--bg);
   box-shadow: 0 2px 0 var(--shadow);
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 700;
   flex-shrink: 0;
 }
 
@@ -353,7 +354,7 @@ button {
 .about-title {
   font-family: 'PressStart', 'Courier New', monospace;
   font-size: 34px;
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: 2px;
   color: var(--text);
   text-shadow: 3px 3px 0 var(--red);
@@ -410,7 +411,7 @@ button {
 .section-title {
   font-family: 'PressStart', 'Courier New', monospace;
   font-size: 17px;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--text);
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -424,7 +425,7 @@ button {
 .subsection-title {
   font-family: 'PressStart', 'Courier New', monospace;
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -550,7 +551,7 @@ button {
 .cli-badge {
   font-family: 'PressStart', 'Courier New', monospace;
   font-size: 10px;
-  font-weight: 400;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 4px 8px;
@@ -949,14 +950,13 @@ button {
 }
 
 .chrome-svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 .icon-btn {
-  width: 12px;
-  height: 12px;
-  image-rendering: pixelated;
+  width: 16px;
+  height: 16px;
   color: inherit;
 }
 
@@ -1156,7 +1156,7 @@ button {
 .wizard-title {
   font-family: 'PressStart', 'Courier New', monospace;
   font-size: 17px;
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: 1px;
   color: var(--text);
 }
@@ -2041,14 +2041,14 @@ button {
 
 .roster-remove {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 16px;
-  height: 16px;
+  top: -7px;
+  right: -7px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
   color: var(--red);
   background: var(--bg);
@@ -2064,12 +2064,12 @@ button {
 
 .roster-control {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1;
   color: var(--text-dim);
   background: var(--bg);
@@ -2092,7 +2092,7 @@ button {
   justify-content: center;
   font-family: 'PressStart', 'Courier New', monospace;
   font-size: 11px;
-  font-weight: 400;
+  font-weight: 700;
   color: #fff;
   background: var(--yellow);
   border: 2px solid var(--border);

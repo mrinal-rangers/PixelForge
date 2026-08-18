@@ -63,6 +63,9 @@ export interface CreateSessionOptions extends AgentProfileFields {
   cliId: string
   cols?: number
   rows?: number
+  /** Reuse a fixed session id (used when resuming a persisted coworker after
+   *  an app restart so the office terminal reconnects to the same agent). */
+  id?: string
   /** Full command line override. When set, this exact command is spawned instead
    *  of the CLI's default command (used by the Add Agent engine step). */
   command?: string

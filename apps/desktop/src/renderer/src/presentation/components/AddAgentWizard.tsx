@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { ACCENT_COLORS, CHARACTERS } from '../scene/characters'
 import { useOfficeStore } from '../../application/state/officeStore'
 import { MiniAvatar } from './MiniAvatar'
@@ -150,7 +151,7 @@ export function AddAgentWizard({ clis, terminalSize, onClose }: AddAgentWizardPr
   const [busy, setBusy] = useState(false)
 
   const projects = useOfficeStore((s) => s.projects)
-  const allAgents = useOfficeStore((s) => Object.values(s.agents))
+  const allAgents = useOfficeStore(useShallow((s) => Object.values(s.agents)))
   const resumeOptions = allAgents.filter(
     (agent) => agent.id !== managerId && agent.cliId !== '' && agent.status !== 'running'
   )

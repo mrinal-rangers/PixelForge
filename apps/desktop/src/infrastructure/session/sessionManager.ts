@@ -33,7 +33,7 @@ export class AgentSession {
   private stopRequested = false
 
   constructor(options: CreateSessionOptions, cli: CliInfo) {
-    this.id = randomUUID()
+    this.id = options.id ?? randomUUID()
     this.projectPath = options.projectPath
     this.cli = cli
     this.commandOverride = options.command

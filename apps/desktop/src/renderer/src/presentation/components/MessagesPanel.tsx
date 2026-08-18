@@ -54,7 +54,7 @@ export function MessagesPanel({
   isManager,
   onOpenTask
 }: MessagesPanelProps): React.JSX.Element {
-  const mailVersion = useMessageStore((s) => [s.messages, s.conversations])
+  const mailVersion = useMessageStore(useShallow((s) => [s.messages, s.conversations]))
   const conversations = useMemo(
     () => conversationSummaries(isManager ? undefined : viewerId),
     // eslint-disable-next-line react-hooks/exhaustive-deps

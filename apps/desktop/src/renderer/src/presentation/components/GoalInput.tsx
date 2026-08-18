@@ -4,6 +4,7 @@ import type { GoalApprovalMode, TaskAttachment, TaskPriority } from '@shared/typ
 import { useGoalStore } from '../../application/state/goalStore'
 import { useOfficeStore } from '../../application/state/officeStore'
 import { sendPlanningRequest } from '../../application/services/goalEngine'
+import { CloseIcon } from './ChromeIcon'
 
 interface GoalInputProps {
   onClose: () => void
@@ -90,7 +91,7 @@ export function GoalInput({ onClose }: GoalInputProps): React.JSX.Element {
         <div className="modal-header">
           <h2>NEW GOAL</h2>
           <button className="btn-icon" onClick={onClose} title="Close">
-            ×
+            <CloseIcon className="icon-btn" />
           </button>
         </div>
         <div className="task-modal-scroll goal-modal-scroll">

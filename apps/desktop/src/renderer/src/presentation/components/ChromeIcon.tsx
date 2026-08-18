@@ -55,22 +55,22 @@ export function PlusIcon({ className, title = 'Add agent' }: IconProps): React.J
   )
 }
 
-/** Pixel close icon. */
+/** Line close (X) icon. */
 export function CloseIcon({ className, title = 'Close' }: IconProps): React.JSX.Element {
   return (
     <svg
       className={className}
-      viewBox="0 0 10 10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       role="img"
       aria-label={title}
-      shapeRendering="crispEdges"
     >
-      <rect x="2" y="1" width="2" height="2" fill="currentColor" />
-      <rect x="6" y="1" width="2" height="2" fill="currentColor" />
-      <rect x="1" y="2" width="8" height="2" fill="currentColor" />
-      <rect x="1" y="6" width="8" height="2" fill="currentColor" />
-      <rect x="2" y="7" width="2" height="2" fill="currentColor" />
-      <rect x="6" y="7" width="2" height="2" fill="currentColor" />
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
     </svg>
   )
 }

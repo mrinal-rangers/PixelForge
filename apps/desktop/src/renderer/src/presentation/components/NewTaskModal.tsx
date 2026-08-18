@@ -4,6 +4,7 @@ import { useOfficeStore } from '../../application/state/officeStore'
 import { useTaskStore } from '../../application/state/taskStore'
 import { agentIsBusy } from '@shared/rules/task'
 import type { NewTaskInput, TaskAttachment, TaskPriority } from '@shared/types'
+import { CloseIcon } from './ChromeIcon'
 
 interface NewTaskModalProps {
   onClose: () => void
@@ -100,7 +101,7 @@ export function NewTaskModal({ onClose }: NewTaskModalProps): React.JSX.Element 
         <div className="modal-header">
           <h2>NEW TASK</h2>
           <button className="btn-icon" onClick={onClose} title="Close">
-            ×
+            <CloseIcon className="icon-btn" />
           </button>
         </div>
 

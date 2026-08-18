@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { MiniAvatar } from './MiniAvatar'
-import { PlusIcon } from './ChromeIcon'
+import { PlusIcon, CloseIcon } from './ChromeIcon'
 import { getAvatar } from '../scene/characters'
 import { DEFAULT_COWORKER } from '../scene/characters'
 import { useOfficeStore } from '../../application/state/officeStore'
@@ -175,7 +175,7 @@ export function AgentRoster({ onAdd }: AgentRosterProps): React.JSX.Element {
                     title="Remove coworker"
                     aria-label={`Remove ${agent.name}`}
                   >
-                    ×
+                    <CloseIcon className="icon-btn" />
                   </button>
                 )}
               </div>

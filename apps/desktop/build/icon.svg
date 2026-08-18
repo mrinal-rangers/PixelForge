@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <rect width="1024" height="1024" fill="#1e2547"/>
+  <rect width="1024" height="1024" rx="229" fill="#1e2547"/>
   <rect x="48" y="48" width="928" height="928" rx="210" fill="#141a38"/>
   <rect x="48" y="48" width="928" height="928" rx="210" fill="none" stroke="#3a9dff" stroke-opacity="0.55" stroke-width="10"/>
   <g shape-rendering="crispEdges" transform="translate(92,92)">

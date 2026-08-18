@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { MiniAvatar } from './MiniAvatar'
+import { CloseIcon } from './ChromeIcon'
 import { getAvatar, DEFAULT_COWORKER } from '../scene/characters'
 import { useOfficeStore } from '../../application/state/officeStore'
 import { useTaskStore } from '../../application/state/taskStore'
@@ -175,7 +176,7 @@ export function TaskDetails({
           }}
           title="Delete task"
         >
-          ×
+          <CloseIcon className="icon-btn" />
         </button>
       </div>
 

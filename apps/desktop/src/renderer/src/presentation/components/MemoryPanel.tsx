@@ -12,6 +12,7 @@ import { useMemoryStore } from '../../application/state/memoryStore'
 import { filterMemories, sourceLabel, containsSecret } from '@shared/rules/memory'
 import { proposeMemory } from '../../application/services/memoryEngine'
 import { useOfficeStore } from '../../application/state/officeStore'
+import { CloseIcon } from './ChromeIcon'
 
 interface MemoryPanelProps {
   onOpenTask?: (taskId: string) => void
@@ -619,7 +620,7 @@ function MemoryEditor({ memory, onClose }: { memory: MemoryRecord | null; onClos
         <div className="modal-header">
           <h2>{memory ? 'EDIT MEMORY' : 'ADD MEMORY'}</h2>
           <button className="btn-icon" onClick={onClose} title="Close">
-            ×
+            <CloseIcon className="icon-btn" />
           </button>
         </div>
         <div className="task-modal-scroll goal-modal-scroll">
