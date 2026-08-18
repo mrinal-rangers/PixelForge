@@ -9,6 +9,7 @@ import { parseMemoryOutput } from './events/memoryEvents'
 import { parseMessageOutput } from './events/messageEvents'
 import { startGoalEngine } from './services/goalEngine'
 import { startMessageEngine, recordSystem } from './services/messageEngine'
+import { startGraphEngine } from './services/graphService'
 import { conversationIdForSystem } from '@shared/rules/message'
 
 export interface ApplicationBootstrapOptions {
@@ -64,6 +65,7 @@ export function initApplication(options: ApplicationBootstrapOptions = {}): void
 
   startGoalEngine()
   startMessageEngine()
+  void startGraphEngine()
 
   window.workspace
     .listSessions()

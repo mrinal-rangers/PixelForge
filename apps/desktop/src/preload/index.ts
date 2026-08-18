@@ -7,6 +7,8 @@ import type {
   ConversationRecord,
   CreateSessionOptions,
   GoalRecord,
+  GraphNode,
+  GraphRelationship,
   MemoryRecord,
   MessageRecord,
   NewGoalInput,
@@ -56,6 +58,13 @@ const api: WorkspaceApi = {
   conversationSave: (conversation: ConversationRecord) =>
     ipcRenderer.invoke('conversation:save', conversation),
   conversationList: () => ipcRenderer.invoke('conversation:list'),
+  graphNodeSave: (node: GraphNode) => ipcRenderer.invoke('graph:nodeSave', node),
+  graphNodeList: () => ipcRenderer.invoke('graph:nodeList'),
+  graphNodeRemove: (nodeId) => ipcRenderer.invoke('graph:nodeRemove', nodeId),
+  graphRelationshipSave: (rel: GraphRelationship) =>
+    ipcRenderer.invoke('graph:relationshipSave', rel),
+  graphRelationshipList: () => ipcRenderer.invoke('graph:relationshipList'),
+  graphRelationshipRemove: (relId) => ipcRenderer.invoke('graph:relationshipRemove', relId),
   selectProject: () => ipcRenderer.invoke('dialog:selectProject'),
   selectFiles: () => ipcRenderer.invoke('dialog:selectFiles'),
   listClis: () => ipcRenderer.invoke('cli:list'),

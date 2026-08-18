@@ -5,6 +5,7 @@ import { MiniAvatar } from './MiniAvatar'
 import { GoalManager } from './GoalManager'
 import { MemoryPanel } from './MemoryPanel'
 import { MessagesPanel } from './MessagesPanel'
+import { GraphPanel } from './GraphPanel'
 import { getAvatar, DEFAULT_COWORKER } from '../scene/characters'
 import { useOfficeStore } from '../../application/state/officeStore'
 import { useTaskStore } from '../../application/state/taskStore'
@@ -16,7 +17,7 @@ import type { OfficeAgentRecord } from '../../application/state/officeStore'
 import type { CliInfo, MessageRecord, SessionStatus } from '@shared/types'
 
 type WorkerTabId = 'terminal' | 'tasks' | 'git' | 'messages' | 'traces'
-type ManagerTabId = 'goal' | 'terminal' | 'monitor' | 'tasks' | 'ask-me' | 'messages' | 'commands' | 'memory'
+type ManagerTabId = 'goal' | 'terminal' | 'monitor' | 'tasks' | 'ask-me' | 'messages' | 'commands' | 'memory' | 'graph'
 type TabId = WorkerTabId | ManagerTabId
 
 const WORKER_TABS: { id: WorkerTabId; label: string }[] = [
@@ -35,7 +36,8 @@ const MANAGER_TABS: { id: ManagerTabId; label: string }[] = [
   { id: 'ask-me', label: 'Ask Me' },
   { id: 'messages', label: 'Messages' },
   { id: 'commands', label: 'Commands' },
-  { id: 'memory', label: 'Memory' }
+  { id: 'memory', label: 'Memory' },
+  { id: 'graph', label: 'Graph' }
 ]
 
 const STATUS_LABELS: Record<SessionStatus, string> = {
@@ -311,6 +313,15 @@ export function CommandCenter({
           return renderCommands()
         case 'memory':
           return renderMemory()
+        case 'graph':
+          return (
+            <GraphPanel
+              onOpenTask={(taskId) => {
+                selectTask(taskId)
+                onOpenBoard()
+              }}
+            />
+          )
         default:
           return renderTerminal()
       }

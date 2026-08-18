@@ -23,12 +23,14 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
+    "cytoscape": "^3.34.1",
     "node-pty": "^1.1.0",
     "pixi.js": "^8.19.0",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^2.0.0",
+    "@types/cytoscape": "^3.21.9",
     "@types/node": "^22.19.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

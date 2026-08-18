@@ -538,6 +538,112 @@ export interface NewMessageInput {
   urgent?: boolean
 }
 
+export type GraphNodeType =
+  | 'goal'
+  | 'task'
+  | 'subtask'
+  | 'coworker'
+  | 'project'
+  | 'file'
+  | 'memory'
+  | 'decision'
+  | 'question'
+  | 'message'
+  | 'test'
+  | 'commit'
+  | 'external'
+
+export type GraphRelationshipType =
+  | 'contains'
+  | 'depends-on'
+  | 'assigned-to'
+  | 'changed'
+  | 'verifies'
+  | 'came-from'
+  | 'approved-by'
+  | 'answered'
+  | 'reviewed'
+  | 'handoff'
+  | 'imports'
+  | 'uses'
+  | 'produced'
+  | 'contradicts'
+  | 'blocked-by'
+  | 'references'
+  | 'sent'
+  | 'received'
+
+/** Authority of a graph relationship. Inferred edges are never silently
+ *  treated as confirmed facts. */
+export type GraphRelationshipStatus =
+  | 'confirmed'
+  | 'user-confirmed'
+  | 'agent-reported'
+  | 'inferred'
+  | 'outdated'
+  | 'conflicting'
+
+export interface GraphNode {
+  id: string
+  type: GraphNodeType
+  label: string
+  projectPath?: string
+  /** Raw status of the underlying record (task/goal/message status, etc.). */
+  status?: string
+  archived?: boolean
+  confidence?: MemoryConfidence
+  tags?: string[]
+  createdAt?: number
+  updatedAt?: number
+  /** Source detail panel data, keyed by the underlying record. */
+  meta?: Record<string, unknown>
+}
+
+export interface GraphRelationship {
+  id: string
+  source: string
+  target: string
+  type: GraphRelationshipType
+  status: GraphRelationshipStatus
+  confidence?: number
+  /** Human-readable why/evidence for this connection. */
+  evidence?: string
+  /** Underlying record id this relationship points back to (task/message…). */
+  evidenceId?: string
+  createdBy?: string
+  createdAt: number
+  updatedAt: number
+  archived?: boolean
+}
+
+export interface GraphSnapshot {
+  nodes: GraphNode[]
+  relationships: GraphRelationship[]
+}
+
+export interface GraphNodeInput {
+  id: string
+  type: GraphNodeType
+  label: string
+  projectPath?: string
+  status?: string
+  archived?: boolean
+  confidence?: MemoryConfidence
+  tags?: string[]
+  meta?: Record<string, unknown>
+}
+
+export interface GraphRelationshipInput {
+  source: string
+  target: string
+  type: GraphRelationshipType
+  status: GraphRelationshipStatus
+  confidence?: number
+  evidence?: string
+  evidenceId?: string
+  createdBy?: string
+}
+
 export interface WorkspaceApi {
   getAppInfo(): Promise<AppInfo>
   saveCoworker(config: CoworkerConfig): Promise<void>
@@ -566,6 +672,12 @@ export interface WorkspaceApi {
   conversationCreate(conversation: ConversationRecord): Promise<ConversationRecord>
   conversationSave(conversation: ConversationRecord): Promise<ConversationRecord>
   conversationList(): Promise<ConversationRecord[]>
+  graphNodeSave(node: GraphNode): Promise<GraphNode>
+  graphNodeList(): Promise<GraphNode[]>
+  graphNodeRemove(nodeId: string): Promise<void>
+  graphRelationshipSave(rel: GraphRelationship): Promise<GraphRelationship>
+  graphRelationshipList(): Promise<GraphRelationship[]>
+  graphRelationshipRemove(relId: string): Promise<void>
   selectProject(): Promise<string | null>
   selectFiles(): Promise<string[] | null>
   listClis(): Promise<CliInfo[]>

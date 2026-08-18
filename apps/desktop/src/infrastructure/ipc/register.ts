@@ -26,12 +26,24 @@ import {
   saveConversation,
   saveMessage
 } from '../db/messageRepo'
+import {
+  createNode,
+  createRelationship,
+  listNodes,
+  listRelationships,
+  removeNode,
+  removeRelationship,
+  saveNode,
+  saveRelationship
+} from '../db/graphRepo'
 import type {
   CliInfo,
   ConversationRecord,
   CreateSessionOptions,
   CoworkerConfig,
   GoalRecord,
+  GraphNode,
+  GraphRelationship,
   MemoryRecord,
   MessageRecord,
   NewGoalInput,
@@ -176,6 +188,30 @@ export function registerIpcHandlers(deps: { sessionManager: SessionManager }): v
   )
 
   ipcMain.handle('conversation:list', () => listConversations())
+
+  ipcMain.handle('graph:nodeSave', (_event, node: GraphNode) => saveNode(node))
+
+  ipcMain.handle('graph:nodeCreate', (_event, input: Parameters<typeof createNode>[0]) =>
+    createNode(input)
+  )
+
+  ipcMain.handle('graph:nodeList', () => listNodes())
+
+  ipcMain.handle('graph:nodeRemove', (_event, nodeId: string) => {
+    removeNode(nodeId)
+  })
+
+  ipcMain.handle('graph:relationshipSave', (_event, rel: GraphRelationship) => saveRelationship(rel))
+
+  ipcMain.handle('graph:relationshipCreate', (_event, input: Parameters<typeof createRelationship>[0]) =>
+    createRelationship(input)
+  )
+
+  ipcMain.handle('graph:relationshipList', () => listRelationships())
+
+  ipcMain.handle('graph:relationshipRemove', (_event, relId: string) => {
+    removeRelationship(relId)
+  })
 
   ipcMain.handle('dialog:selectProject', async () => {
     const result = await dialog.showOpenDialog({
