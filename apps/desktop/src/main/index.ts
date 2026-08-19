@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, nativeImage } from 'electron'
 import { existsSync } from 'node:fs'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 
@@ -55,6 +56,20 @@ function createWindow(): void {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+
+  if (process.env['PIXELFORGE_PREVIEW']) {
+    setTimeout(async () => {
+      try {
+        const image = await mainWindow.webContents.capturePage()
+        const outPath = process.env['PIXELFORGE_PREVIEW']
+        await writeFile(outPath, image.toPNG())
+        console.log(`[preview] saved ${outPath}`)
+      } catch (err) {
+        console.error('[preview] failed', err)
+      }
+      app.quit()
+    }, 12000)
   }
 }
 

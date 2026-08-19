@@ -1,85 +1,86 @@
 import 'pixi.js/unsafe-eval'
-import { Application, Assets, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
+import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
 import { useOfficeStore } from '../../application/state/officeStore'
 import { useTaskStore } from '../../application/state/taskStore'
+import { useGoalStore } from '../../application/state/goalStore'
 import { useMemoryStore } from '../../application/state/memoryStore'
 import { useMessageStore, unreadCountFor } from '../../application/state/messageStore'
 import type { MailEvent } from '../../application/state/messageStore'
 import type { OfficeAgentRecord } from '../../application/state/officeStore'
-import officeFloorUrl from '../../assets/pixel-office/office-floor.png'
-import lookRedUrl from '../../assets/pixel-office/red.png'
-import lookAmberUrl from '../../assets/pixel-office/amber.png'
-import lookGreenUrl from '../../assets/pixel-office/green.png'
-import lookCyanUrl from '../../assets/pixel-office/cyan.png'
-import lookWhiteUrl from '../../assets/pixel-office/white.png'
+import { OFFICE_MAP, TILE } from './officeMap'
+import { buildOffice, CANVAS_W, CANVAS_H, MARGIN } from './buildOffice'
+import type { ScreenRect } from './buildOffice'
+import { buildCharacterSheet } from './sheetBuilder'
+import type { CharacterSheet } from './sheetBuilder'
+import { getAvatar, DEFAULT_COWORKER } from './characters'
+import { Pathfinder } from './pathfinding'
+import type { CharacterSpec, Direction, FrameName, StationId } from './types'
 
-type VisualState =
-  | 'working'
-  | 'idle'
-  | 'attention'
-  | 'error'
-  | 'offline'
+type VisualState = 'working' | 'idle' | 'attention' | 'error' | 'offline'
 
-const FLOOR_W = 1024
-const FLOOR_H = 896
-const WORK_IDLE_MS = 2800
+const WORK_IDLE_MS = 3000
 const ATTENTION_MS = 1400
-const WALK_SPEED = 3.2
 const SUCCESS_MS = 4000
+const MEMORY_VISIT_MS = 9000
+const WALK_SPEED = 2.6
 
 const PIXEL_FONT = 'PressStart, monospace'
 
-const LOOKS: string[] = ['red', 'amber', 'green', 'cyan', 'white']
-
-function lookFor(avatarId: string | undefined, index: number): string {
-  if (!avatarId) {
-    return LOOKS[index % LOOKS.length]
-  }
-  let hash = 0
-  for (let i = 0; i < avatarId.length; i++) {
-    hash = (hash * 31 + avatarId.charCodeAt(i)) >>> 0
-  }
-  return LOOKS[hash % LOOKS.length]
+const COLORS = {
+  green: '#3ad95e',
+  amber: '#ffcc33',
+  red: '#ff5c5c',
+  cyan: '#3fe0e0',
+  grey: '#5a5f78'
 }
 
-/**
- * Agent anchor slots on the 1024x896 office floor (4x of the 256x224 scene).
- * The first five sit on the baked-in figures; the rest spread across open floor.
- */
-const SLOTS: { x: number; y: number }[] = [
-  { x: 188, y: 820 },
-  { x: 728, y: 824 },
-  { x: 876, y: 848 },
-  { x: 188, y: 600 },
-  { x: 700, y: 600 },
-  { x: 380, y: 820 },
-  { x: 520, y: 680 },
-  { x: 380, y: 680 },
-  { x: 600, y: 840 },
-  { x: 96, y: 640 },
-  { x: 928, y: 640 }
+/** Overflow anchors (office px) for coworker teams larger than four desks. */
+const OVERFLOW_SPOTS: Array<{ x: number; y: number; facing: Direction }> = [
+  { x: 236, y: 208, facing: 'down' },
+  { x: 236, y: 260, facing: 'up' },
+  { x: 300, y: 208, facing: 'down' },
+  { x: 480, y: 252, facing: 'up' },
+  { x: 148, y: 320, facing: 'right' },
+  { x: 400, y: 312, facing: 'down' }
 ]
 
-export interface OfficeRendererOptions {
-  onFocus: (sessionId: string) => void
+const DESK_STATIONS: StationId[] = ['worker_desk_1', 'worker_desk_2', 'worker_desk_3', 'worker_desk_4']
+
+interface Anchor {
+  x: number
+  y: number
+  facing: Direction
+}
+
+interface Target {
+  anchor: Anchor
+  seat: Anchor | null
+  visual: VisualState
+  bubble: 'attention' | 'error' | 'success' | null
 }
 
 interface AgentBehavior {
   id: string
   container: Container
   sprite: Sprite
+  sheet: CharacterSheet
   shadow: Graphics
   label: Container
   marker: Graphics
   taskIcon: Graphics
-  look: string
+  homeStation: StationId | null
+  facing: Direction
   visual: VisualState
+  path: Array<[number, number]>
+  pathIndex: number
+  seated: boolean
   lastBubble: 'attention' | 'error' | 'success' | null
+  bubbleGfx: Container | null
   prevStatus: string
   animTime: number
-  homeX: number
-  homeY: number
-  entering: boolean
+  stepPhase: number
+  blinkAt: number
+  walkedIn: boolean
 }
 
 interface MailFlight {
@@ -91,15 +92,26 @@ interface MailFlight {
   start: number
 }
 
+export interface OfficeRendererOptions {
+  onFocus: (sessionId: string) => void
+}
+
 export class OfficeRenderer {
   private app!: Application
   private sceneRoot!: Container
+  private agentsLayer!: Container
+  private fxLayer!: Container
+  private bubbleLayer!: Container
   private agents = new Map<string, AgentBehavior>()
-  private textures = new Map<string, Texture>()
   private destroyed = false
-  private archiveDoc!: Graphics
-  private archiveWarning!: Graphics
-  private archiveGlyph!: Text
+  private pathfinder = new Pathfinder(OFFICE_MAP)
+  private screens: ScreenRect[] = []
+  private deskLights: Array<{ id: number; x: number; y: number }> = []
+  private screenGfx!: Graphics
+  private deskLightGfx!: Graphics
+  private stationAgent = new Map<string, string>()
+  private archiveDoc!: Container
+  private archiveWarning!: Container
   private mailFlights = new Map<string, MailFlight>()
   private seenMail = new Set<string>()
   private mailIndicators = new Map<string, Graphics>()
@@ -109,8 +121,8 @@ export class OfficeRenderer {
   async init(root: HTMLElement): Promise<void> {
     const app = new Application()
     await app.init({
-      width: FLOOR_W,
-      height: FLOOR_H,
+      width: CANVAS_W,
+      height: CANVAS_H,
       background: '#0a0d18',
       antialias: false,
       resolution: 1,
@@ -122,117 +134,106 @@ export class OfficeRenderer {
     root.appendChild(app.canvas)
 
     this.sceneRoot = new Container()
+    this.sceneRoot.sortableChildren = true
     app.stage.addChild(this.sceneRoot)
 
-    const [floorTex, redTex, amberTex, greenTex, cyanTex, whiteTex] = await Promise.all([
-      Assets.load<Texture>(officeFloorUrl),
-      Assets.load<Texture>(lookRedUrl),
-      Assets.load<Texture>(lookAmberUrl),
-      Assets.load<Texture>(lookGreenUrl),
-      Assets.load<Texture>(lookCyanUrl),
-      Assets.load<Texture>(lookWhiteUrl)
-    ])
-    this.textures.set('floor', floorTex)
-    this.textures.set('red', redTex)
-    this.textures.set('amber', amberTex)
-    this.textures.set('green', greenTex)
-    this.textures.set('cyan', cyanTex)
-    this.textures.set('white', whiteTex)
+    const built = buildOffice()
+    this.screens = built.screens
+    this.deskLights = built.deskLights
 
-    const floor = new Sprite(floorTex)
-    floor.position.set(0, 0)
-    this.sceneRoot.addChild(floor)
+    const layerA = new Sprite(Texture.from(built.layerA))
+    layerA.zIndex = 0
+    this.sceneRoot.addChild(layerA)
 
-    this.buildArchive()
+    this.agentsLayer = new Container()
+    this.agentsLayer.zIndex = 1
+    this.agentsLayer.sortableChildren = true
+    this.sceneRoot.addChild(this.agentsLayer)
+
+    const layerB = new Sprite(Texture.from(built.layerB))
+    layerB.zIndex = 10000
+    this.sceneRoot.addChild(layerB)
+
+    this.fxLayer = new Container()
+    this.fxLayer.zIndex = 20000
+    this.sceneRoot.addChild(this.fxLayer)
+
+    this.screenGfx = new Graphics()
+    this.fxLayer.addChild(this.screenGfx)
+
+    this.deskLightGfx = new Graphics()
+    this.fxLayer.addChild(this.deskLightGfx)
+
+    this.bubbleLayer = new Container()
+    this.bubbleLayer.zIndex = 30000
+    this.sceneRoot.addChild(this.bubbleLayer)
+
+    this.buildStationHits()
+    this.buildArchiveFx()
     this.syncAgents()
     app.ticker.add(() => this.tick())
   }
 
-  private buildArchive(): void {
-    const archive = new Container()
-    const shelf = new Graphics()
-    shelf.rect(0, 0, 96, 60).fill('#151a30').stroke({ width: 4, color: '#3b4a82' })
-    shelf.rect(4, 20, 88, 4).fill('#2a3352')
-    shelf.rect(4, 40, 88, 4).fill('#2a3352')
-    const bookColors = ['#e8b84b', '#4b9de8', '#7b5bd6', '#4bc98a', '#e86b6b']
-    for (let i = 0; i < 8; i++) {
-      const x = 8 + i * 11
-      const y = i % 2 === 0 ? 8 : 28
-      shelf.rect(x, y, 8, 12).fill(bookColors[i % bookColors.length])
+  // ---- Station hit areas ------------------------------------------------------
+
+  private buildStationHits(): void {
+    for (const station of OFFICE_MAP.stations) {
+      const g = new Graphics()
+      const cx = station.x + MARGIN
+      const cy = station.y + MARGIN
+      const w = Math.max(24, station.w + 8)
+      const h = Math.max(32, station.h + 20)
+      g.rect(cx - w / 2, cy - h / 2, w, h)
+      g.fill({ color: '#ffffff', alpha: 0.001 })
+      g.eventMode = 'static'
+      g.cursor = 'pointer'
+      g.on('pointertap', () => {
+        const agentId = this.stationAgent.get(station.id)
+        if (agentId) {
+          this.options.onFocus(agentId)
+        }
+      })
+      g.zIndex = 40000
+      this.fxLayer.addChild(g)
     }
-    archive.addChild(shelf)
-    const label = new Text({
-      text: 'ARCHIVE',
-      style: {
-        fontFamily: PIXEL_FONT,
-        fontSize: 8,
-        fill: '#8b93ad',
-        stroke: { color: '#141a2e', width: 3 }
-      }
-    })
-    label.position.set(0, 68)
-    archive.addChild(label)
-    archive.position.set(56, 160)
-    archive.zIndex = 100
-    this.sceneRoot.addChild(archive)
+  }
 
-    this.archiveDoc = new Graphics()
+  private buildArchiveFx(): void {
+    this.archiveDoc = new Container()
     this.archiveDoc.visible = false
-    this.archiveDoc.zIndex = 101
-    this.sceneRoot.addChild(this.archiveDoc)
+    this.archiveDoc.zIndex = 40001
+    this.fxLayer.addChild(this.archiveDoc)
+    const doc = new Graphics()
+    doc.rect(0, 0, 12, 15).fill('#f0e6c8').stroke({ width: 2, color: '#141a2e' })
+    doc.rect(3, 4, 6, 1).fill('#5a5f78')
+    doc.rect(3, 7, 6, 1).fill('#5a5f78')
+    doc.rect(3, 10, 4, 1).fill('#5a5f78')
+    this.archiveDoc.addChild(doc)
 
-    this.archiveWarning = new Graphics()
+    this.archiveWarning = new Container()
     this.archiveWarning.visible = false
-    this.archiveWarning.zIndex = 102
-    this.sceneRoot.addChild(this.archiveWarning)
-
-    this.archiveGlyph = new Text({
+    this.archiveWarning.zIndex = 40002
+    this.fxLayer.addChild(this.archiveWarning)
+    const warn = new Graphics()
+    warn.roundRect(0, 0, 18, 18, 3).fill('#ff5c5c').stroke({ width: 3, color: '#141a2e' })
+    this.archiveWarning.addChild(warn)
+    const glyph = new Text({
       text: '!',
       style: { fontFamily: PIXEL_FONT, fontSize: 12, fill: '#ffffff', stroke: { color: '#141a2e', width: 3 } }
     })
-    this.archiveGlyph.anchor.set(0.5)
-    this.archiveGlyph.position.set(9, 9)
-    this.archiveWarning.addChild(this.archiveGlyph)
-  }
-
-  private tickArchive(now: number): void {
-    const memory = useMemoryStore.getState()
-    if (memory.lastCreated && now - memory.lastCreated.ts < 4000) {
-      this.archiveDoc.visible = true
-      this.archiveDoc.clear()
-      this.archiveDoc.rect(0, 0, 12, 15).fill('#f0e6c8').stroke({ width: 2, color: '#141a2e' })
-      this.archiveDoc.rect(3, 4, 6, 1).fill('#5a5f78')
-      this.archiveDoc.rect(3, 7, 6, 1).fill('#5a5f78')
-      this.archiveDoc.rect(3, 10, 4, 1).fill('#5a5f78')
-      this.archiveDoc.position.set(96, 160 + Math.floor((now % 500) / 250) * -2)
-    } else if (this.archiveDoc.visible) {
-      this.archiveDoc.visible = false
-    }
-
-    if (memory.conflictNotice && now - memory.conflictNotice.ts < 4000) {
-      this.archiveWarning.visible = true
-      this.archiveWarning.clear()
-      this.archiveWarning.roundRect(0, 0, 18, 18, 3).fill('#ff5c5c').stroke({ width: 3, color: '#141a2e' })
-      this.archiveWarning.position.set(150, 150)
-    } else if (this.archiveWarning.visible) {
-      this.archiveWarning.clear()
-      this.archiveWarning.visible = false
-    }
+    glyph.anchor.set(0.5)
+    glyph.position.set(9, 9)
+    this.archiveWarning.addChild(glyph)
   }
 
   resize(availW: number, availH: number): void {
     if (!this.app || this.destroyed) {
       return
     }
-    let scale: number
-    if (availW >= FLOOR_W && availH >= FLOOR_H) {
-      scale = Math.max(1, Math.floor(Math.min(availW / FLOOR_W, availH / FLOOR_H)))
-    } else {
-      scale = Math.min(availW / FLOOR_W, availH / FLOOR_H)
-    }
+    const scale = Math.max(0.5, Math.min(availW / CANVAS_W, availH / CANVAS_H))
     const canvas = this.app.canvas
-    canvas.style.width = `${FLOOR_W * scale}px`
-    canvas.style.height = `${FLOOR_H * scale}px`
+    canvas.style.width = `${Math.round(CANVAS_W * scale)}px`
+    canvas.style.height = `${Math.round(CANVAS_H * scale)}px`
   }
 
   destroy(): void {
@@ -240,19 +241,34 @@ export class OfficeRenderer {
     this.app?.destroy(true, { children: true })
   }
 
-  // ---- Agents --------------------------------------------------------------
+  // ---- Agents ----------------------------------------------------------------
+
+  private specFor(record: OfficeAgentRecord): CharacterSpec {
+    const avatar = getAvatar(record.avatarId ?? '')
+    return { ...(avatar ?? DEFAULT_COWORKER), name: record.name, role: record.role }
+  }
+
+  private stationFor(record: OfficeAgentRecord, index: number): { id: StationId | null; overflow: Anchor | null } {
+    if (record.id === useOfficeStore.getState().managerId) {
+      return { id: 'manager_desk', overflow: null }
+    }
+    const desk = record.desk ?? index
+    if (desk >= 1 && desk <= 4) {
+      return { id: DESK_STATIONS[desk - 1], overflow: null }
+    }
+    const spot = OVERFLOW_SPOTS[(desk - 5 + OVERFLOW_SPOTS.length) % OVERFLOW_SPOTS.length]
+    return { id: null, overflow: spot }
+  }
 
   private syncAgents(): void {
     const { agents } = useOfficeStore.getState()
     const ids = Object.keys(agents)
-
     for (let index = 0; index < ids.length; index++) {
       const id = ids[index]
       if (!this.agents.has(id)) {
         this.spawnAgent(id, agents[id], index)
       }
     }
-
     for (const [id, behavior] of this.agents) {
       if (!agents[id]) {
         this.depthRemove(behavior)
@@ -262,7 +278,7 @@ export class OfficeRenderer {
   }
 
   private depthRemove(behavior: AgentBehavior): void {
-    this.sceneRoot.removeChild(behavior.container)
+    this.agentsLayer.removeChild(behavior.container)
     behavior.container.destroy({ children: true })
     const indicator = this.mailIndicators.get(behavior.id)
     if (indicator) {
@@ -271,25 +287,22 @@ export class OfficeRenderer {
   }
 
   private spawnAgent(id: string, record: OfficeAgentRecord, index: number): void {
-    const slot = SLOTS[Math.min(record.desk ?? index, SLOTS.length - 1)]
-    const look = lookFor(record.avatarId, index)
-    const tex = this.textures.get(look)
-    if (!tex) {
-      return
-    }
+    const spec = this.specFor(record)
+    const sheet = buildCharacterSheet(spec)
     const isManager = id === useOfficeStore.getState().managerId
+    const { id: stationId } = this.stationFor(record, index)
 
     const container = new Container()
-    container.position.set(slot.x, slot.y)
-    container.zIndex = slot.y
+    const entrance = OFFICE_MAP.entrance
+    container.position.set(entrance.x * TILE + TILE / 2 + MARGIN, entrance.y * TILE + TILE + MARGIN)
+    container.zIndex = 1
 
     const shadow = new Graphics()
-    shadow.ellipse(0, 1, 16, 6).fill('#00000055')
+    shadow.ellipse(0, 1, 9, 4).fill('#00000055')
     container.addChild(shadow)
 
-    const sprite = new Sprite(tex)
+    const sprite = new Sprite(sheet.frames.down.idle)
     sprite.anchor.set(0.5, 1)
-    sprite.scale.set(4)
     sprite.eventMode = 'static'
     sprite.cursor = 'pointer'
     container.addChild(sprite)
@@ -309,25 +322,27 @@ export class OfficeRenderer {
       id,
       container,
       sprite,
+      sheet,
       shadow,
       label,
       marker,
       taskIcon,
-      look,
+      homeStation: stationId,
+      facing: 'down',
       visual: 'idle',
+      path: [],
+      pathIndex: 0,
+      seated: false,
       lastBubble: null,
+      bubbleGfx: null,
       prevStatus: record.status,
       animTime: 0,
-      homeX: slot.x,
-      homeY: slot.y,
-      entering: false
-    }
-    if (record.status === 'starting') {
-      behavior.entering = true
-      container.position.set(slot.x, -40)
+      stepPhase: 0,
+      blinkAt: Date.now() + 1500 + Math.random() * 3000,
+      walkedIn: false
     }
     this.wireAgentTap(behavior)
-    this.sceneRoot.addChild(behavior.container)
+    this.agentsLayer.addChild(behavior.container)
     this.agents.set(id, behavior)
   }
 
@@ -336,7 +351,6 @@ export class OfficeRenderer {
     const dot = new Graphics()
     dot.rect(0, 1, 5, 5).fill('#5a5f78')
     label.addChild(dot)
-
     if (isManager) {
       const crown = new Graphics()
       crown.poly([0, 10, 3, 3, 6, 8, 9, 3, 12, 10]).fill('#ffd95a')
@@ -344,7 +358,6 @@ export class OfficeRenderer {
       crown.position.set(9, -8)
       label.addChild(crown)
     }
-
     const nameText = new Text({
       text: name,
       style: {
@@ -357,7 +370,6 @@ export class OfficeRenderer {
     })
     nameText.position.set(9, 0)
     label.addChild(nameText)
-
     const roleText = new Text({
       text: isManager ? 'BOSS' : role.toUpperCase(),
       style: {
@@ -369,9 +381,8 @@ export class OfficeRenderer {
     })
     roleText.position.set(9, 12)
     label.addChild(roleText)
-
     label.pivot.set(label.width / 2, 0)
-    label.position.set(0, -84)
+    label.position.set(0, -36)
     return label
   }
 
@@ -381,48 +392,361 @@ export class OfficeRenderer {
     dot.rect(0, 1, 5, 5).fill(color)
   }
 
-  private updateLabelState(behavior: AgentBehavior, record?: OfficeAgentRecord): void {
-    const status = record?.status
-    let color = '#5a5f78'
-    if (status === 'running' || status === 'starting') {
-      color = '#3ad95e'
-    }
-    if (status === 'error') {
-      color = '#ff5c5c'
-    }
-    if (record?.promptPending && status === 'running') {
-      color = '#ffcc33'
-    }
-    this.setLabelDot(behavior, color)
+  private wireAgentTap(behavior: AgentBehavior): void {
+    const onTap = (): void => this.options.onFocus(behavior.id)
+    behavior.sprite.on('pointertap', onTap)
+    behavior.label.eventMode = 'static'
+    behavior.label.cursor = 'pointer'
+    behavior.label.on('pointertap', onTap)
   }
 
-  private setBubble(
-    behavior: AgentBehavior,
-    kind: 'attention' | 'error' | 'success' | null
-  ): void {
-    const old = behavior.container.getChildByLabel('bubble')
-    if (old) {
-      old.destroy({ children: true })
+  // ---- Target resolution ------------------------------------------------------
+
+  private stationById(id: StationId | null, overflow: Anchor | null): Anchor & { seat: Anchor | null } {
+    if (overflow) {
+      return { x: overflow.x + MARGIN, y: overflow.y + MARGIN, facing: overflow.facing, seat: null }
     }
+    const station = OFFICE_MAP.stations.find((s) => s.id === id)
+    if (!station) {
+      return { x: 236 + MARGIN, y: 208 + MARGIN, facing: 'down', seat: null }
+    }
+    return {
+      x: station.x + MARGIN,
+      y: station.y + MARGIN,
+      facing: station.facing,
+      seat: station.seat ? { x: station.seat.x + MARGIN, y: station.seat.y + MARGIN, facing: station.seatFacing ?? station.facing } : null
+    }
+  }
+
+  private hasOpenQuestion(record: OfficeAgentRecord): boolean {
+    const tasks = useTaskStore.getState().tasks
+    for (const task of Object.values(tasks)) {
+      if (task.assignedAgentId !== record.id) {
+        continue
+      }
+      if (task.status === 'needs-input' && task.questions.some((q) => q.answeredAt == null)) {
+        return true
+      }
+    }
+    if (record.id === useOfficeStore.getState().managerId) {
+      for (const goal of Object.values(useGoalStore.getState().goals)) {
+        if (goal.questions.some((q) => q.answeredAt == null)) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
+  private hasFailed(record: OfficeAgentRecord): boolean {
+    const tasks = useTaskStore.getState().tasks
+    for (const task of Object.values(tasks)) {
+      if (task.assignedAgentId === record.id && task.status === 'failed') {
+        return true
+      }
+    }
+    return false
+  }
+
+  private hasQueued(record: OfficeAgentRecord): boolean {
+    const tasks = useTaskStore.getState().tasks
+    for (const task of Object.values(tasks)) {
+      if (task.assignedAgentId === record.id && task.status === 'todo') {
+        return true
+      }
+    }
+    return false
+  }
+
+  private justCompleted(record: OfficeAgentRecord, now: number): boolean {
+    const tasks = useTaskStore.getState().tasks
+    for (const task of Object.values(tasks)) {
+      if (task.assignedAgentId === record.id && task.status === 'done' && task.completedAt && now - task.completedAt < SUCCESS_MS) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private recentlyUsedMemory(record: OfficeAgentRecord, now: number): boolean {
+    for (const memory of Object.values(useMemoryStore.getState().memories)) {
+      if (memory.lastUsedAt && now - memory.lastUsedAt < MEMORY_VISIT_MS) {
+        if (memory.usage.some((u) => u.agentId === record.id)) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
+  private isOffline(record: OfficeAgentRecord): boolean {
+    return record.cliId === '' || record.status === 'idle' || record.status === 'stopped' || record.status === 'completed'
+  }
+
+  private resolveTarget(behavior: AgentBehavior, record: OfficeAgentRecord, index: number, now: number): Target {
+    const { id: stationId, overflow } = this.stationFor(record, index)
+    const base = this.stationById(stationId, overflow)
+    const status = record.status ?? 'stopped'
+
+    const question = this.hasOpenQuestion(record)
+    const failed = this.hasFailed(record)
+    const offline = this.isOffline(record)
+
+    // Needs human input → walk to the waiting sofa, sit, show a question bubble.
+    if (!offline && question && (status === 'running' || status === 'starting')) {
+      const sofa = this.stationById('ask_me_sofa', null)
+      return {
+        anchor: sofa.seat ?? sofa,
+        seat: sofa.seat,
+        visual: 'attention',
+        bubble: 'attention'
+      }
+    }
+
+    // Task failed or the session is in a hard error state.
+    if (failed || status === 'error') {
+      return { anchor: base, seat: base.seat, visual: 'error', bubble: 'error' }
+    }
+
+    // Agent is booting a session → walk in from the entrance.
+    if (status === 'starting' && !behavior.walkedIn) {
+      return { anchor: base, seat: base.seat, visual: 'idle', bubble: null }
+    }
+
+    // Recently used shared memory → visit the archive reading table.
+    if (!offline && this.recentlyUsedMemory(record, now)) {
+      const memory = this.stationById('memory_table', null)
+      return { anchor: memory, seat: memory.seat, visual: 'working', bubble: null }
+    }
+
+    const quiet = record.lastActivityAt ? now - record.lastActivityAt : Number.POSITIVE_INFINITY
+    let visual: VisualState = offline ? 'offline' : 'idle'
+    let bubble: 'attention' | 'error' | 'success' | null = null
+    if (!offline && (status === 'running' || status === 'starting')) {
+      if (record.promptPending && quiet > ATTENTION_MS) {
+        visual = 'attention'
+        bubble = 'attention'
+      } else if (quiet > WORK_IDLE_MS) {
+        visual = 'idle'
+      } else {
+        visual = 'working'
+      }
+    }
+    if (this.justCompleted(record, now)) {
+      bubble = 'success'
+    }
+    return { anchor: base, seat: base.seat, visual, bubble }
+  }
+
+  // ---- Ticker -----------------------------------------------------------------
+
+  private tick(): void {
+    if (this.destroyed) {
+      return
+    }
+    const now = Date.now()
+    this.syncAgents()
+    const agents = useOfficeStore.getState().agents
+    const ids = Object.keys(agents)
+    this.stationAgent.clear()
+
+    for (let index = 0; index < ids.length; index++) {
+      const id = ids[index]
+      const behavior = this.agents.get(id)
+      const record = agents[id]
+      if (!behavior || !record) {
+        continue
+      }
+      const target = this.resolveTarget(behavior, record, index, now)
+      if (behavior.homeStation) {
+        this.stationAgent.set(behavior.homeStation, id)
+      }
+      this.updateAgent(behavior, record, target, now)
+      this.updateLabelState(behavior, record)
+      this.updateSelectionMarker(behavior)
+    }
+    this.tickScreens(now)
+    this.tickDeskLights(agents, now)
+    this.tickArchive(now)
+    this.tickMail(now)
+    this.sceneRoot.sortChildren()
+    this.agentsLayer.sortChildren()
+  }
+
+  private updateAgent(behavior: AgentBehavior, record: OfficeAgentRecord, target: Target, now: number): void {
+    const status = record.status ?? 'stopped'
+    if (status === 'starting' && behavior.prevStatus !== 'starting') {
+      behavior.walkedIn = false
+    }
+    behavior.prevStatus = status
+
+    const dest = target.seat && target.visual !== 'offline' ? target.seat : target.anchor
+    this.walkTo(behavior, dest)
+    if (behavior.path.length === 0 && status !== 'starting') {
+      behavior.walkedIn = true
+    }
+
+    const walking = behavior.path.length > 0
+    if (walking) {
+      behavior.seated = false
+      behavior.facing = this.stepDirection(behavior)
+    } else {
+      behavior.facing = dest.facing
+      behavior.seated = Boolean(target.seat && this.atAnchor(behavior, dest))
+    }
+    if (target.visual !== behavior.visual) {
+      behavior.visual = target.visual
+    }
+
+    if (target.bubble !== behavior.lastBubble) {
+      behavior.lastBubble = target.bubble
+      this.setBubble(behavior, target.bubble)
+    }
+    const hasQueued = !this.isOffline(record) && this.hasQueued(record)
+    this.setTaskIcon(behavior, hasQueued)
+
+    this.updateFrames(behavior, walking, now)
+    behavior.sprite.alpha = behavior.visual === 'offline' ? 0.4 : 1
+    behavior.label.alpha = behavior.visual === 'offline' ? 0.55 : 1
+    behavior.shadow.alpha = behavior.visual === 'offline' ? 0.35 : 1
+    behavior.container.zIndex = Math.round(behavior.container.position.y) + (this.agentsLayer.zIndex ?? 1)
+  }
+
+  private atAnchor(behavior: AgentBehavior, anchor: Anchor): boolean {
+    return Math.abs(behavior.container.position.x - anchor.x) < 0.5 && Math.abs(behavior.container.position.y - anchor.y) < 0.5
+  }
+
+  private walkTo(behavior: AgentBehavior, dest: Anchor): void {
+    const pos = behavior.container.position
+    const dx = dest.x - pos.x
+    const dy = dest.y - pos.y
+    const dist = Math.hypot(dx, dy)
+    if (dist <= WALK_SPEED) {
+      pos.set(dest.x, dest.y)
+      behavior.path = []
+      behavior.pathIndex = 0
+      return
+    }
+    if (behavior.path.length === 0) {
+      const fromX = Math.floor(pos.x / TILE)
+      const fromY = Math.floor(pos.y / TILE)
+      const toX = Math.floor(dest.x / TILE)
+      const toY = Math.floor(dest.y / TILE)
+      behavior.path = this.pathfinder.findPath(fromX, fromY, toX, toY)
+      behavior.pathIndex = 0
+    }
+    if (behavior.path.length > 0) {
+      const [tx, ty] = behavior.path[behavior.pathIndex]
+      const wx = tx * TILE + TILE / 2 + MARGIN
+      const wy = ty * TILE + TILE / 2 + MARGIN
+      const pdx = wx - pos.x
+      const pdy = wy - pos.y
+      const pd = Math.hypot(pdx, pdy)
+      if (pd <= WALK_SPEED) {
+        pos.set(wx, wy)
+        behavior.pathIndex += 1
+        if (behavior.pathIndex >= behavior.path.length) {
+          behavior.path = []
+          behavior.pathIndex = 0
+        }
+      } else {
+        pos.x += (pdx / pd) * WALK_SPEED
+        pos.y += (pdy / pd) * WALK_SPEED
+      }
+      return
+    }
+    // No path found: ease straight toward the destination.
+    pos.x += (dx / dist) * WALK_SPEED
+    pos.y += (dy / dist) * WALK_SPEED
+  }
+
+  private stepDirection(behavior: AgentBehavior): Direction {
+    const pos = behavior.container.position
+    if (behavior.path.length > 0) {
+      const [tx, ty] = behavior.path[Math.min(behavior.pathIndex, behavior.path.length - 1)]
+      const wx = tx * TILE + TILE / 2 + MARGIN
+      const wy = ty * TILE + TILE / 2 + MARGIN
+      const dx = wx - pos.x
+      const dy = wy - pos.y
+      if (Math.abs(dx) > Math.abs(dy)) {
+        return dx > 0 ? 'right' : 'left'
+      }
+      return dy > 0 ? 'down' : 'up'
+    }
+    return behavior.facing
+  }
+
+  private updateFrames(behavior: AgentBehavior, walking: boolean, now: number): void {
+    const dir = behavior.facing
+    const frame: FrameName = walking
+      ? behavior.stepPhase % 2 === 0
+        ? 'walk1'
+        : 'walk2'
+      : behavior.visual === 'working'
+        ? behavior.stepPhase % 2 === 0
+          ? 'type1'
+          : 'type2'
+        : behavior.seated
+          ? 'sit'
+          : 'idle'
+    const tex =
+      frame === 'idle' && now - behavior.blinkAt < 140
+        ? behavior.sheet.blink[dir]
+        : behavior.sheet.frames[dir][frame]
+    if (behavior.sprite.texture !== tex) {
+      behavior.sprite.texture = tex
+    }
+    if (now > behavior.blinkAt + 140) {
+      behavior.blinkAt = now + 1800 + Math.random() * 3200
+    }
+    if (walking) {
+      behavior.stepPhase = Math.floor(now / 90)
+      behavior.sprite.y = 0
+    } else if (behavior.visual === 'working') {
+      behavior.stepPhase = Math.floor(now / 130)
+      behavior.sprite.y = behavior.seated ? (now % 260 < 130 ? 0 : -1) : now % 260 < 130 ? 0 : -2
+    } else if (behavior.seated) {
+      behavior.stepPhase = 0
+      behavior.sprite.y = 0
+    } else {
+      behavior.stepPhase = 0
+      behavior.sprite.y = now % 2000 < 140 ? -1 : 0
+    }
+  }
+
+  private setBubble(behavior: AgentBehavior, kind: 'attention' | 'error' | 'success' | null): void {
     if (!kind) {
       return
     }
-    const bubble = new Container()
-    bubble.label = 'bubble'
+    if (behavior.bubbleGfx) {
+      this.bubbleLayer.removeChild(behavior.bubbleGfx)
+      behavior.bubbleGfx.destroy({ children: true })
+      behavior.bubbleGfx = null
+    }
     const g = new Graphics()
-    const color = kind === 'attention' ? '#ffcc33' : kind === 'error' ? '#ff5c5c' : '#3ad95e'
+    const color = kind === 'attention' ? COLORS.amber : kind === 'error' ? COLORS.red : COLORS.green
     g.roundRect(0, 0, 18, 18, 4).fill(color).stroke({ width: 3, color: '#141a2e' })
     g.rect(5, 16, 4, 4).fill(color)
-    bubble.addChild(g)
     const glyph = new Text({
       text: kind === 'attention' ? '?' : kind === 'error' ? '!' : '✓',
       style: { fontFamily: PIXEL_FONT, fontSize: kind === 'success' ? 10 : 12, fill: '#ffffff', stroke: { color: '#141a2e', width: 3 } }
     })
     glyph.anchor.set(0.5)
     glyph.position.set(9, 9)
-    bubble.addChild(glyph)
-    bubble.position.set(10, -92)
-    behavior.container.addChild(bubble)
+    g.addChild(glyph)
+    g.position.set(behavior.container.position.x + 8, behavior.container.position.y - 34)
+    g.zIndex = 50000
+    this.bubbleLayer.addChild(g)
+    behavior.bubbleGfx = g
+    setTimeout(() => {
+      if (!this.destroyed) {
+        this.bubbleLayer.removeChild(g)
+        g.destroy({ children: true })
+        if (behavior.bubbleGfx === g) {
+          behavior.bubbleGfx = null
+        }
+      }
+    }, kind === 'success' ? 2600 : 5200)
   }
 
   private setTaskIcon(behavior: AgentBehavior, visible: boolean): void {
@@ -438,7 +762,25 @@ export class OfficeRenderer {
     g.rect(0, 0, 10, 12).fill('#f0e6c8').stroke({ width: 2, color: '#141a2e' })
     g.rect(2, 3, 6, 1).fill('#5a5f78')
     g.rect(2, 6, 6, 1).fill('#5a5f78')
-    g.position.set(16, -24)
+    g.position.set(12, -16)
+  }
+
+  private updateLabelState(behavior: AgentBehavior, record: OfficeAgentRecord): void {
+    const status = record.status
+    let color = COLORS.grey
+    if (status === 'running' || status === 'starting') {
+      color = COLORS.green
+    }
+    if (status === 'error') {
+      color = COLORS.red
+    }
+    if (record.promptPending && status === 'running') {
+      color = COLORS.amber
+    }
+    if (this.hasOpenQuestion(record)) {
+      color = COLORS.amber
+    }
+    this.setLabelDot(behavior, color)
   }
 
   private updateSelectionMarker(behavior: AgentBehavior): void {
@@ -449,141 +791,113 @@ export class OfficeRenderer {
     }
     const g = behavior.marker
     g.clear()
-    g.poly([-6, -44, 6, -44, 0, -36]).fill('#ffcc33')
+    g.poly([-8, -40, 8, -40, 0, -32]).fill('#ffcc33')
   }
 
-  private tick(): void {
-    if (this.destroyed) {
-      return
-    }
-    const now = Date.now()
-    this.syncAgents()
+  // ---- Screen + desk-light overlays -------------------------------------------
+
+  private tickScreens(now: number): void {
+    const g = this.screenGfx
+    g.clear()
+    const tasks = useTaskStore.getState().tasks
+    const anyOngoing = Object.values(tasks).some((t) => t.status === 'ongoing' || t.status === 'needs-input')
     const agents = useOfficeStore.getState().agents
-    this.tickArchive(now)
-    this.tickMail(now)
-    for (const behavior of this.agents.values()) {
-      const record = agents[behavior.id]
-      this.updateVisual(behavior, now, record)
-      this.updateLabelState(behavior, record)
-      this.updateSelectionMarker(behavior)
-    }
-    this.sceneRoot.sortChildren()
-  }
 
-  private updateVisual(behavior: AgentBehavior, now: number, record?: OfficeAgentRecord): void {
-    const status = record?.status ?? 'stopped'
-    let visual: VisualState = 'offline'
-    if (record && record.cliId === '') {
-      visual = 'offline'
-    } else if (status === 'starting' || status === 'running') {
-      const last = record?.lastActivityAt ?? 0
-      const quiet = last > 0 ? now - last : 0
-      if (record?.promptPending && quiet > ATTENTION_MS) {
-        visual = 'attention'
-      } else if (quiet > WORK_IDLE_MS) {
-        visual = 'idle'
-      } else {
-        visual = 'working'
-      }
-    } else if (status === 'error') {
-      visual = 'error'
-    }
-
-    if (status === 'starting' && behavior.prevStatus !== 'starting') {
-      behavior.entering = true
-      behavior.container.position.set(behavior.homeX, -40)
-    }
-    behavior.prevStatus = status
-
-    const taskState = this.taskStateFor(behavior.id, now)
-    const offline = visual === 'offline'
-    if (!offline && (status === 'running' || status === 'starting')) {
-      if (taskState.hasOpenQuestion) {
-        visual = 'attention'
-      } else if (taskState.hasFailed) {
-        visual = 'error'
-      }
-    }
-    let bubbleKind: 'attention' | 'error' | 'success' | null = null
-    if (taskState.justCompleted) {
-      bubbleKind = 'success'
-    } else if (visual === 'attention') {
-      bubbleKind = 'attention'
-    } else if (visual === 'error') {
-      bubbleKind = 'error'
-    }
-
-    if (visual !== behavior.visual) {
-      behavior.visual = visual
-    }
-    if (bubbleKind !== behavior.lastBubble) {
-      behavior.lastBubble = bubbleKind
-      this.setBubble(behavior, bubbleKind)
-    }
-    this.setTaskIcon(behavior, !offline && taskState.hasQueued)
-
-    if (behavior.entering) {
-      const dx = behavior.homeX - behavior.container.position.x
-      const dy = behavior.homeY - behavior.container.position.y
-      const dist = Math.hypot(dx, dy)
-      if (dist < WALK_SPEED) {
-        behavior.entering = false
-        behavior.container.position.set(behavior.homeX, behavior.homeY)
-      } else {
-        behavior.container.position.x += (dx / dist) * WALK_SPEED
-        behavior.container.position.y += (dy / dist) * WALK_SPEED
-      }
-      const bob = Math.floor(now / 120) % 2 === 0 ? -3 : 0
-      behavior.sprite.y = bob
-    } else if (visual === 'working' || visual === 'idle') {
-      behavior.animTime += 1
-      const period = visual === 'working' ? 10 : 20
-      const amp = visual === 'working' ? 3 : 2
-      behavior.sprite.y = (behavior.animTime % period < period / 2 ? 0 : -amp) + (visual === 'working' ? -2 : 0)
-    } else {
-      behavior.sprite.y = 0
-    }
-
-    behavior.sprite.alpha = offline ? 0.35 : 1
-    behavior.label.alpha = offline ? 0.5 : 1
-    behavior.shadow.alpha = offline ? 0.4 : 1
-    behavior.container.zIndex = Math.round(behavior.container.position.y)
-  }
-
-  private taskStateFor(
-    agentId: string,
-    now: number
-  ): { hasOpenQuestion: boolean; hasFailed: boolean; hasQueued: boolean; justCompleted: boolean } {
-    let hasOpenQuestion = false
-    let hasFailed = false
-    let hasQueued = false
-    let justCompleted = false
-    for (const task of Object.values(useTaskStore.getState().tasks)) {
-      if (task.assignedAgentId !== agentId) {
+    for (const screen of this.screens) {
+      const active = this.screenActivity(screen.id, agents, now, anyOngoing)
+      const { x, y, w, h } = screen
+      g.rect(x, y, w, h).fill('#0d1526')
+      if (!active) {
+        g.rect(x + 2, y + h / 2, w - 4, 1).fill('#1a2335')
         continue
       }
-      if (task.status === 'needs-input' && task.questions.some((q) => q.answeredAt == null)) {
-        hasOpenQuestion = true
-      } else if (task.status === 'failed') {
-        hasFailed = true
-      } else if (task.status === 'todo') {
-        hasQueued = true
-      } else if (task.status === 'done' && task.completedAt && now - task.completedAt < SUCCESS_MS) {
-        justCompleted = true
+      const t = now / 60
+      for (let i = 0; i < w - 4; i += 3) {
+        const row = y + 3 + ((i * 2 + Math.floor(t)) % (h - 6))
+        g.rect(x + 2 + i, row, 2, 2).fill('#3fe0e0')
       }
+      g.rect(x + 2, y + h - 3, w - 4, 1).fill('#1f7070')
     }
-    return { hasOpenQuestion, hasFailed, hasQueued, justCompleted }
   }
 
-  private wireAgentTap(behavior: AgentBehavior): void {
-    const onTap = (): void => this.options.onFocus(behavior.id)
-    behavior.sprite.on('pointertap', onTap)
-    behavior.label.eventMode = 'static'
-    behavior.label.cursor = 'pointer'
-    behavior.label.on('pointertap', onTap)
+  private screenActivity(id: string, agents: Record<string, OfficeAgentRecord>, now: number, anyOngoing: boolean): boolean {
+    const activeNow = (agentId: string): boolean => {
+      const record = agents[agentId]
+      if (!record || this.isOffline(record)) {
+        return false
+      }
+      const quiet = record.lastActivityAt ? now - record.lastActivityAt : Number.POSITIVE_INFINITY
+      return quiet < WORK_IDLE_MS
+    }
+    if (id.startsWith('desk')) {
+      const n = Number.parseInt(id.slice(4), 10)
+      const station = `worker_desk_${n}`
+      const agentId = this.stationAgent.get(station)
+      return agentId ? activeNow(agentId) : false
+    }
+    if (id.startsWith('test')) {
+      return anyOngoing
+    }
+    if (id === 'lab') {
+      return anyOngoing
+    }
+    if (id === 'server') {
+      return true
+    }
+    if (id === 'console') {
+      return true
+    }
+    if (id === 'wallconsole') {
+      return true
+    }
+    return false
   }
 
-  // ---- Mail envelopes and indicators ---------------------------------------
+  private tickDeskLights(agents: Record<string, OfficeAgentRecord>, now: number): void {
+    const g = this.deskLightGfx
+    g.clear()
+    for (const light of this.deskLights) {
+      const station = `worker_desk_${light.id}`
+      const agentId = this.stationAgent.get(station)
+      let color = '#20262e'
+      if (agentId && agents[agentId]) {
+        const record = agents[agentId]
+        if (this.isOffline(record)) {
+          color = '#3a4150'
+        } else if (record.status === 'error' || this.hasFailed(record)) {
+          color = COLORS.red
+        } else if (this.hasOpenQuestion(record)) {
+          color = COLORS.amber
+        } else if (record.promptPending) {
+          color = COLORS.amber
+        } else {
+          const quiet = record.lastActivityAt ? now - record.lastActivityAt : Number.POSITIVE_INFINITY
+          color = quiet < WORK_IDLE_MS ? COLORS.green : COLORS.cyan
+        }
+      }
+      g.rect(light.x, light.y, 2, 2).fill(color)
+    }
+  }
+
+  private tickArchive(now: number): void {
+    const memory = useMemoryStore.getState()
+    const [docX, docY] = [14 * TILE + MARGIN, 59 * TILE + MARGIN]
+    if (memory.lastCreated && now - memory.lastCreated.ts < 4000) {
+      this.archiveDoc.visible = true
+      this.archiveDoc.position.set(docX, docY + Math.floor((now % 500) / 250) * -2)
+    } else if (this.archiveDoc.visible) {
+      this.archiveDoc.visible = false
+    }
+    const [warnX, warnY] = [10 * TILE + MARGIN, 50 * TILE + MARGIN]
+    if (memory.conflictNotice && now - memory.conflictNotice.ts < 4000) {
+      this.archiveWarning.visible = true
+      this.archiveWarning.position.set(warnX, warnY)
+    } else if (this.archiveWarning.visible) {
+      this.archiveWarning.visible = false
+    }
+  }
+
+  // ---- Mail envelopes ---------------------------------------------------------
 
   private tickMail(now: number): void {
     const { mailEvents } = useMessageStore.getState()
@@ -602,11 +916,10 @@ export class OfficeRenderer {
         }
       }
     }
-
     for (const [id, flight] of this.mailFlights) {
       const t = Math.min(1, (now - flight.start) / 900)
       const x = flight.fromX + (flight.toX - flight.fromX) * t
-      const y = flight.fromY + (flight.toY - flight.fromY) * t - Math.sin(t * Math.PI) * 42
+      const y = flight.fromY + (flight.toY - flight.fromY) * t - Math.sin(t * Math.PI) * 32
       flight.group.position.set(x, y)
       flight.group.rotation = Math.sin(t * Math.PI) * 0.18
       if (t >= 1) {
@@ -615,19 +928,18 @@ export class OfficeRenderer {
         this.mailFlights.delete(id)
       }
     }
-
     for (const [agentId, behavior] of this.agents) {
       const unread = unreadCountFor(agentId)
       let indicator = this.mailIndicators.get(agentId)
       if (unread > 0) {
         if (!indicator) {
           indicator = this.buildMailIndicator()
-          behavior.container.addChild(indicator)
+          this.fxLayer.addChild(indicator)
           this.mailIndicators.set(agentId, indicator)
         }
         indicator.visible = true
         const bob = Math.floor(now / 400) % 2 === 0 ? -2 : 0
-        indicator.position.set(26, -30 + bob)
+        indicator.position.set(behavior.container.position.x + 12, behavior.container.position.y - 22 + bob)
       } else if (indicator) {
         indicator.visible = false
       }
@@ -640,9 +952,7 @@ export class OfficeRenderer {
         return null
       }
       const behavior = this.agents.get(id)
-      return behavior
-        ? { x: behavior.container.position.x, y: behavior.container.position.y - 70 }
-        : null
+      return behavior ? { x: behavior.container.position.x, y: behavior.container.position.y - 40 } : null
     }
     const from = desk(event.fromId)
     if (!from) {
@@ -651,14 +961,14 @@ export class OfficeRenderer {
     const to = desk(event.toId)
     const group = this.buildEnvelope(event.urgent)
     group.position.set(from.x, from.y)
-    group.zIndex = 1000
+    group.zIndex = 40003
     this.sceneRoot.addChild(group)
     this.mailFlights.set(event.id, {
       group,
       fromX: from.x,
       fromY: from.y,
-      toX: to ? to.x : from.x + 200,
-      toY: to ? to.y : -60,
+      toX: to ? to.x : from.x + 160,
+      toY: to ? to.y : -40,
       start: now
     })
   }

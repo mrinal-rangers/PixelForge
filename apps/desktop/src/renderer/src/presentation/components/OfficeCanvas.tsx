@@ -64,7 +64,7 @@ export function OfficeCanvas(): React.JSX.Element {
   return (
     <div className="office-canvas">
       <div className="office-toolbar">
-        <span className="office-toolbar-title">STUDIO FLOOR</span>
+        <span className="office-toolbar-title">AI OFFICE FLOOR</span>
         <span className="office-toolbar-title">SELECT A COWORKER</span>
       </div>
       <div className="office-canvas-stage" ref={stageRef} />

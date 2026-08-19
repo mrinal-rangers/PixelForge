@@ -169,6 +169,21 @@ export function closedEyes(grid: Grid): Grid {
   )
 }
 
+const BLANK_LEGS: string[] = [
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................'
+]
+
+// ---- Seated poses (legs hidden, body lowered behind a desk/table) ------------
+
+export const DOWN_SIT: Grid = [...DOWN_HEAD, ...DOWN_TORSO, ...BLANK_LEGS]
+export const UP_SIT: Grid = [...UP_HEAD, ...DOWN_TORSO, ...BLANK_LEGS]
+export const RIGHT_SIT: Grid = [...RIGHT_HEAD, ...RIGHT_TORSO, ...BLANK_LEGS]
+
 /** All hand-authored frames, keyed by direction, before mirroring. */
 export const BASE_FRAMES: Record<'down' | 'up' | 'right', Record<string, Grid>> = {
   down: {
@@ -176,20 +191,23 @@ export const BASE_FRAMES: Record<'down' | 'up' | 'right', Record<string, Grid>> 
     walk1: DOWN_WALK1,
     walk2: DOWN_WALK2,
     type1: DOWN_TYPE1,
-    type2: DOWN_TYPE2
+    type2: DOWN_TYPE2,
+    sit: DOWN_SIT
   },
   up: {
     idle: UP_IDLE,
     walk1: UP_WALK1,
     walk2: UP_WALK2,
     type1: UP_TYPE1,
-    type2: UP_TYPE2
+    type2: UP_TYPE2,
+    sit: UP_SIT
   },
   right: {
     idle: RIGHT_IDLE,
     walk1: RIGHT_WALK1,
     walk2: RIGHT_WALK2,
     type1: RIGHT_TYPE1,
-    type2: RIGHT_TYPE2
+    type2: RIGHT_TYPE2,
+    sit: RIGHT_SIT
   }
 }
